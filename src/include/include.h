@@ -7,7 +7,7 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 200
 
 
-#include "CL/cl2.hpp"
+#include "CL/cl.h"
 #include "OpenCL.h"
 
 #include "opencv2/core/core.hpp"
