@@ -7,19 +7,19 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 200
 
 
-#include "CL/cl.h"
+#include "CL/cl.hpp"
 #include "OpenCL.h"
 
-#include "opencv2/core/core.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <string>
 #include <fstream>
-
+#include <math.h>
 
 
 #endif //THESIS_INCLUDE_H

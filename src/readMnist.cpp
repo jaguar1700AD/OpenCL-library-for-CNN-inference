@@ -1,16 +1,6 @@
-#include "opencv2/core/core.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include <math.h>
-#include <iostream>
-#include <fstream>
-
+#include "include/include.h"
 
 using namespace cv;
-
-
-
-
 
 
 int ReverseInt(int i)
@@ -143,8 +133,6 @@ void read_Mnist_Label(std::string filename, std::vector<std::vector<float>> &vec
 
 		int magic_number = 0;
 		int number_of_images = 0;
-		int n_rows = 0;
-		int n_cols = 0;
 
 		file.read((char*)&magic_number, sizeof(magic_number));
 		magic_number = ReverseInt(magic_number);

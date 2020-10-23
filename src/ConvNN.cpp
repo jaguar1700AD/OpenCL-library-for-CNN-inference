@@ -1,11 +1,6 @@
 
 
-#include "ConvNN.h"
-
-
-
-
-
+#include "include/ConvNN.h"
 
 
 ///Create the neural net as a vector of layers
@@ -70,7 +65,7 @@ void ConvNN::createFullyConnectedNN(std::vector<cl_int> &newNetVec, bool onlyFCN
 	h_layers.push_back(*inputLayer);
 
 	///Create the other layers
-	for (unsigned int i = 1; i <h_netVec.size(); i++)
+	for (long unsigned int i = 1; i <h_netVec.size(); i++)
 	{
 		Layer *hidlayer = layer(h_netVec[i], h_netVec[i - 1]);
 		h_layers.push_back(*hidlayer);
@@ -96,7 +91,7 @@ void ConvNN::createFullyConnectedNN(std::vector<cl_int> &newNetVec, bool onlyFCN
 	(OpenCL::clqueue).enqueueWriteBuffer(tempbuf,CL_TRUE,0,sizeof(Node)*h_layers[0].numOfNodes,h_layers[0].nodes);
 	d_layersBuffers.push_back(tempbuf);
 
-	for (int i = 1; i<h_layers.size(); i++) {
+	for (long unsigned int i = 1; i<h_layers.size(); i++) {
 		tempbuf = cl::Buffer(OpenCL::clcontext, CL_MEM_READ_WRITE, sizeof(Node)*h_layers[i].numOfNodes);
 		(OpenCL::clqueue).enqueueWriteBuffer(tempbuf, CL_TRUE,0, sizeof(Node)*h_layers[i].numOfNodes, h_layers[i].nodes);
 		d_layersBuffers.push_back(tempbuf);
@@ -173,7 +168,7 @@ void ConvNN::train(std::vector<std::vector<float>> &inputs, std::vector<std::vec
 
 	int i = 0;
 
-	for (int e = 0; e<epoches; e++) {
+	for (long unsigned int e = 0; e<epoches; e++) {
 		
 		
 		if (e < inputs.size()) { i = e; }
@@ -209,7 +204,7 @@ void ConvNN::train(std::vector<std::vector<float>> &inputs, std::vector<std::vec
 
 		///backward
 		//std::cout << "back" << std::endl;
-		for (int l = h_layers.size() - 1; l>0; l--) {
+		for (long unsigned int l = h_layers.size() - 1; l>0; l--) {
 			
 			
 
@@ -477,7 +472,7 @@ void ConvNN::computeOutputofNN() {
 	
 	
 
-	for (int i = 1; i<h_layers.size(); i++) {
+	for (long unsigned int i = 1; i<h_layers.size(); i++) {
 		
 		
 		int sf = 0;

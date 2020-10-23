@@ -4,11 +4,11 @@
 
 # Compiler settings - Can be customized.
 CC = g++
-CXXFLAGS = -std=c++11 -Wall
-LDFLAGS = 
+CXXFLAGS = -std=c++11 -I /usr/include/opencv4 -g
+LDFLAGS = -lOpenCL `pkg-config --libs opencv4`
 
 # Makefile settings - Can be customized.
-APPNAME = myapp
+APPNAME = EXE
 EXT = .cpp
 SRCDIR = src
 OBJDIR = obj

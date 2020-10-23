@@ -1,11 +1,11 @@
 // Thesis.cpp : Defines the entry point for the console application.
 //
 
+#define __CL_ENABLE_EXCEPTIONS
 
-
-#include "OpenCL.h"
-#include "ConvNN.h"
-#include "util.h"
+#include "include/OpenCL.h"
+#include "include/ConvNN.h"
+#include "include/util.h"
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -25,8 +25,6 @@ int main(void)
 	try {
 
 		OpenCL::initialize_OpenCL();
-
-
 
 		util::Timer timer;
 
@@ -104,7 +102,7 @@ int main(void)
 		testY = cv::Mat::zeros(1, 10000, CV_32FC1);
 
 
-		read_CIFAR10(trainX, testX, trainY, testY);
+		//read_CIFAR10(trainX, testX, trainY, testY);
 
 
 

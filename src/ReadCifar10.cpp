@@ -1,10 +1,4 @@
-
-
-#include "opencv2/core/core.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include <fstream>
-#include <iostream>
+#include "include/include.h"
 
 #define ATD at<float>
 #define elif else if
@@ -56,10 +50,10 @@ Mat concatenateMat(vector<Mat> &vec) {
 		int width = vec[0].cols;
 		Mat res = Mat::zeros(height * width, vec.size(), CV_32FC1);
 		
-		for (int i = 0; i<vec.size(); i++) {
+		for (long unsigned int i = 0; i<vec.size(); i++) {
 				Mat img(height, width, CV_32FC1);
 				Mat gray(height, width, CV_8UC1);
-				cvtColor(vec[i], gray, CV_RGB2GRAY);
+				cvtColor(vec[i], gray, COLOR_RGB2GRAY);
 				gray.convertTo(img, CV_32FC1);
 				// reshape(int cn, int rows=0), cn is num of channels.
 				Mat ptmat = img.reshape(0, height * width);
@@ -79,7 +73,7 @@ Mat concatenateMatC(vector<Mat> &vec) {
 
 		Mat res = Mat::zeros(height * width * 3, vec.size(), CV_32FC1);
 
-		for (int i = 0; i<vec.size(); i++) {
+		for (long unsigned int i = 0; i<vec.size(); i++) {
 
 				Mat img(height, width, CV_32FC3);
 

@@ -1,9 +1,9 @@
 
 
-#include "OpenCL.h"
-#include "util.h"
+#include "include/OpenCL.h"
+#include "include/util.h"
 
-
+using namespace std;
 
 cl::Program OpenCL::clprogram;
 cl::Context OpenCL::clcontext;
@@ -92,19 +92,12 @@ void OpenCL::initialize_OpenCL() {
 	}
 	catch (...) {
 
-		cl_int buildErr = CL_SUCCESS;
-		auto buildInfo = OpenCL::clprogram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(&buildErr);
-		for (auto &pair : buildInfo) {
-			std::cerr << pair.second << std::endl << std::endl;
-		}
+		auto buildInfo = OpenCL::clprogram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device);
+		std::cerr << buildInfo << std::endl << std::endl;
 		
 	}
 
 	OpenCL::clqueue=cl::CommandQueue(OpenCL::clcontext, default_device);
-	
-
-	
-
 
 }
 

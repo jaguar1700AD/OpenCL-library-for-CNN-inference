@@ -41,6 +41,7 @@ private:
 	
 
 	///cnn
+
 	cl::Kernel convKern;
 	cl::Kernel  poolKern;
 	cl::Kernel  reluKern;
