@@ -2,7 +2,6 @@
 #include "include.h"
 #include "util.h"
 
-
 class OpenCL {
 
 
@@ -13,9 +12,6 @@ public:
 	static cl::Context clcontext;
 
 	static void initialize_OpenCL();
-
-
-
 };
 
 

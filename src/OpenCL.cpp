@@ -77,13 +77,14 @@ void OpenCL::initialize_OpenCL() {
 	cl::Program::Sources sources;
 
 	
-	std::string src,src2,src3;
+	std::string src, src2, src3, src4;
 	
 	src = util::loadProgram("kernelheader.cl");
 	src2 = util::loadProgram("fcnn_kernels.cl");
 	src3 = util::loadProgram("conv_kernels.cl");
+	src4 = util::loadProgram("tensor_kernels.cl");
 
-	src = src + src2+src3;
+	src = src + src2 + src3 + src4;
 	sources.push_back({ src.c_str(), src.length() });
 
 	OpenCL::clprogram=cl::Program(OpenCL::clcontext, sources);

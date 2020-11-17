@@ -5,6 +5,7 @@
 
 #define CL_HPP_ENABLE_EXCEPTIONS
 #define CL_HPP_TARGET_OPENCL_VERSION 200
+#define CL_TARGET_OPENCL_VERSION 120
 
 
 #include "CL/cl.hpp"
@@ -20,6 +21,8 @@
 #include <string>
 #include <fstream>
 #include <math.h>
+
+using namespace std;
 
 
 #endif //THESIS_INCLUDE_H
