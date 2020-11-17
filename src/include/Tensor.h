@@ -6,6 +6,9 @@
 namespace Tensor
 {
     extern cl::Kernel addKernel;
+    extern cl::Kernel subKernel;
+    extern cl::Kernel multKernel;
+
     extern cl_int err;
     
     class Tensor
@@ -27,6 +30,12 @@ namespace Tensor
 
     Tensor& add(Tensor& T1, Tensor& T2);
     void add(Tensor& T1, Tensor& T2, Tensor& result);
+
+    Tensor& sub(Tensor& T1, Tensor& T2);
+    void sub(Tensor& T1, Tensor& T2, Tensor& result);
+
+    Tensor& mult(Tensor& T1, Tensor& T2);
+    void mult(Tensor& T1, Tensor& T2, Tensor& result);
 };
 
 #endif

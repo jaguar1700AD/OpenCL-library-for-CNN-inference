@@ -5,6 +5,8 @@ namespace Tensor
 {
     cl_int err;
     cl::Kernel addKernel;
+    cl::Kernel subKernel;
+    cl::Kernel multKernel;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -45,8 +47,9 @@ namespace Tensor
 
     void init()
     {
-        addKernel = cl::Kernel(OpenCL::clprogram, "tensor_add", &err);
-        check_error();
+        addKernel = cl::Kernel(OpenCL::clprogram, "tensor_add", &err); check_error();
+        subKernel = cl::Kernel(OpenCL::clprogram, "tensor_sub", &err); check_error();
+        multKernel = cl::Kernel(OpenCL::clprogram, "tensor_mult", &err); check_error();
     }
 
     void check_error()
@@ -160,6 +163,64 @@ namespace Tensor
         addKernel.setArg(2, result.storageBuffer);
 
         err = (OpenCL::clqueue).enqueueNDRangeKernel(addKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
+        check_error();
+    }
+
+    Tensor& sub(Tensor& T1, Tensor& T2)
+    {
+        assert(T1.dim == T2.dim); 
+
+        Tensor* result = new Tensor(T1.dim);
+
+        subKernel.setArg(0, T1.storageBuffer);
+        subKernel.setArg(1, T2.storageBuffer);
+        subKernel.setArg(2, result->storageBuffer);
+
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(subKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
+        check_error();
+
+        return *result;
+    }
+
+    void sub(Tensor& T1, Tensor& T2, Tensor& result)
+    {
+        assert(T1.dim == T2.dim); 
+        assert(T2.dim == result.dim);
+
+        subKernel.setArg(0, T1.storageBuffer);
+        subKernel.setArg(1, T2.storageBuffer);
+        subKernel.setArg(2, result.storageBuffer);
+
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(subKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
+        check_error();
+    }
+
+    Tensor& mult(Tensor& T1, Tensor& T2)
+    {
+        assert(T1.dim == T2.dim); 
+
+        Tensor* result = new Tensor(T1.dim);
+
+        multKernel.setArg(0, T1.storageBuffer);
+        multKernel.setArg(1, T2.storageBuffer);
+        multKernel.setArg(2, result->storageBuffer);
+
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(multKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
+        check_error();
+
+        return *result;
+    }
+
+    void mult(Tensor& T1, Tensor& T2, Tensor& result)
+    {
+        assert(T1.dim == T2.dim); 
+        assert(T2.dim == result.dim);
+
+        multKernel.setArg(0, T1.storageBuffer);
+        multKernel.setArg(1, T2.storageBuffer);
+        multKernel.setArg(2, result.storageBuffer);
+
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(multKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
         check_error();
     }
 };

@@ -208,7 +208,7 @@ int main(void)
 	vector <float> data2(size*size, 2); T2.setValue(data2);
 	T2.print();
 	
-	Tensor::add(T1, T2, T1);
+	Tensor::mult(T1, T2, T1);
 
 	T1.print();
 
