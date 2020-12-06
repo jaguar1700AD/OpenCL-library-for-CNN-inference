@@ -7,16 +7,29 @@ namespace Tensor
     cl::Kernel addKernel;
     cl::Kernel subKernel;
     cl::Kernel multKernel;
+    cl::Kernel convKernel;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    Tensor::Tensor(vector <int>& dim)
+    Tensor::Tensor(vector <int>& dim, string str, int val)
     {
         this->dim = dim;
         total_size = 1;
         for(int i = 0; i < dim.size(); i++) total_size *= dim[i];
         storageBuffer = cl::Buffer(OpenCL::clcontext, CL_MEM_READ_WRITE, sizeof(float)*total_size);
-        //(OpenCL::clqueue).enqueueWriteBuffer(storageBuffer, CL_TRUE, 0, sizeof(float)*total_size, input.data());
+
+        if (str == "inc")
+        {
+            vector <float> data;
+            for(int i = 0; i < total_size; i++) data.push_back(i);
+            setValue(data);
+        }
+        else if (str == "const")
+        {
+            vector <float> data(total_size, val);
+            setValue(data);
+        }
+        
     }
 
     void Tensor::setValue(vector <float>& values)
@@ -50,10 +63,14 @@ namespace Tensor
         addKernel = cl::Kernel(OpenCL::clprogram, "tensor_add", &err); check_error();
         subKernel = cl::Kernel(OpenCL::clprogram, "tensor_sub", &err); check_error();
         multKernel = cl::Kernel(OpenCL::clprogram, "tensor_mult", &err); check_error();
+        convKernel = cl::Kernel(OpenCL::clprogram, "tensor_conv", &err); check_error();
     }
 
     void check_error()
     {
+        static int iter = 0;
+
+        iter++;
         string str;
         if(err != CL_SUCCESS)
         {
@@ -132,26 +149,51 @@ namespace Tensor
                 default: str = "Unknown OpenCL error";
             }
 
-            cout << str << endl;
+            cout << "My Error " << iter << " : " << str << endl;
             exit(0);
         }
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     Tensor& add(Tensor& T1, Tensor& T2)
     {
-        assert(T1.dim == T2.dim); 
+        Tensor* result = new Tensor(T1.dim, "", -1);
+        add(T1, T2, *result);
+        return *result;
+    }
 
-        Tensor* result = new Tensor(T1.dim);
+    Tensor& sub(Tensor& T1, Tensor& T2)
+    {
+        Tensor* result = new Tensor(T1.dim, "", -1);
+        sub(T1, T2, *result);
+        return *result;
+    }
 
-        addKernel.setArg(0, T1.storageBuffer);
-        addKernel.setArg(1, T2.storageBuffer);
-        addKernel.setArg(2, result->storageBuffer);
+    Tensor& mult(Tensor& T1, Tensor& T2)
+    {
+        Tensor* result = new Tensor(T1.dim, "", -1);
+        mult(T1, T2, *result);
+        return *result;
+    }
 
-        err = (OpenCL::clqueue).enqueueNDRangeKernel(addKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
-        check_error();
+    Tensor& conv(Tensor& T, Tensor& filter, Tensor& bias,  pair<int,int> stride)
+    {
+        int num_filters = filter.dim[0];
+        int inr = T.dim[1], inc = T.dim[2];
+        int kr = filter.dim[2], kc = filter.dim[3];
+        int strider = stride.first, stridec = stride.second;
+        int outr = (inr - kr) / strider + 1;
+        int outc = (inc - kc) / stridec + 1;
+
+        vector <int> vec {num_filters, outr, outc};
+        Tensor* result = new Tensor(vec, "", -1);
+        conv(T, filter, bias, stride, *result);
 
         return *result;
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void add(Tensor& T1, Tensor& T2, Tensor& result)
     {
@@ -164,22 +206,6 @@ namespace Tensor
 
         err = (OpenCL::clqueue).enqueueNDRangeKernel(addKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
         check_error();
-    }
-
-    Tensor& sub(Tensor& T1, Tensor& T2)
-    {
-        assert(T1.dim == T2.dim); 
-
-        Tensor* result = new Tensor(T1.dim);
-
-        subKernel.setArg(0, T1.storageBuffer);
-        subKernel.setArg(1, T2.storageBuffer);
-        subKernel.setArg(2, result->storageBuffer);
-
-        err = (OpenCL::clqueue).enqueueNDRangeKernel(subKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
-        check_error();
-
-        return *result;
     }
 
     void sub(Tensor& T1, Tensor& T2, Tensor& result)
@@ -195,22 +221,6 @@ namespace Tensor
         check_error();
     }
 
-    Tensor& mult(Tensor& T1, Tensor& T2)
-    {
-        assert(T1.dim == T2.dim); 
-
-        Tensor* result = new Tensor(T1.dim);
-
-        multKernel.setArg(0, T1.storageBuffer);
-        multKernel.setArg(1, T2.storageBuffer);
-        multKernel.setArg(2, result->storageBuffer);
-
-        err = (OpenCL::clqueue).enqueueNDRangeKernel(multKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
-        check_error();
-
-        return *result;
-    }
-
     void mult(Tensor& T1, Tensor& T2, Tensor& result)
     {
         assert(T1.dim == T2.dim); 
@@ -221,6 +231,50 @@ namespace Tensor
         multKernel.setArg(2, result.storageBuffer);
 
         err = (OpenCL::clqueue).enqueueNDRangeKernel(multKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
+        check_error();
+    }
+
+    void conv(Tensor& T, Tensor& filter, Tensor& bias,  pair<int,int> stride, Tensor& result)
+    {
+        assert(T.dim.size() == 3);
+        assert(filter.dim.size() == 4);
+        assert(bias.dim.size() == 1);
+        assert(T.dim[0] == filter.dim[1]); 
+        assert(T.dim[1] >= filter.dim[2]); 
+        assert(T.dim[2] >= filter.dim[3]);
+        assert(filter.dim[0] == bias.dim[0]); 
+
+        // global float *image, global float* filters, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, stridec
+
+        int num_filters = filter.dim[0];
+        int inr = T.dim[1], inc = T.dim[2];
+        int kr = filter.dim[2], kc = filter.dim[3];
+        int inz = T.dim[0];
+        int strider = stride.first, stridec = stride.second;
+
+        int outr = (inr - kr) / strider + 1;
+        int outc = (inc - kc) / stridec + 1;
+
+        assert(result.dim[0] == num_filters);
+        assert(result.dim[1] == outr);
+        assert(result.dim[2] == outc);
+
+        convKernel.setArg(0, T.storageBuffer);
+        convKernel.setArg(1, filter.storageBuffer);
+        convKernel.setArg(2, bias.storageBuffer);
+        convKernel.setArg(3, result.storageBuffer);
+        convKernel.setArg(4, inr);
+        convKernel.setArg(5, inc);
+        convKernel.setArg(6, inz);
+        convKernel.setArg(7, kr);
+        convKernel.setArg(8, kc);
+        convKernel.setArg(9, outr);
+        convKernel.setArg(10, outc);
+        convKernel.setArg(11, strider);
+        convKernel.setArg(12, stridec);
+
+        cl::NDRange global_dim = cl::NDRange(num_filters, outr, outc);
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(convKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
     }
 };

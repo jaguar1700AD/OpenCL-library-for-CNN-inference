@@ -88,15 +88,10 @@ void OpenCL::initialize_OpenCL() {
 	sources.push_back({ src.c_str(), src.length() });
 
 	OpenCL::clprogram=cl::Program(OpenCL::clcontext, sources);
-	try {
-		OpenCL::clprogram.build({ default_device });
-	}
-	catch (...) {
-
-		auto buildInfo = OpenCL::clprogram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device);
-		std::cerr << buildInfo << std::endl << std::endl;
+	OpenCL::clprogram.build({ default_device });
+	auto buildInfo = OpenCL::clprogram.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device);
+	cout << buildInfo << std::endl << std::endl;
 		
-	}
 
 	OpenCL::clqueue=cl::CommandQueue(OpenCL::clcontext, default_device);
 

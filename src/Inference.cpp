@@ -14,6 +14,65 @@ void read_Mnist_Label(std::string filename, std::vector<std::vector<float>> &vec
 void printInput(std::vector<float> &inputs);
 void read_CIFAR10(cv::Mat &trainX, cv::Mat &testX, cv::Mat &trainY, cv::Mat &testY);
 
+void test_add()
+{
+	vector <int> vec {2, 2};
+	Tensor::Tensor T1(vec, "inc", -1); 
+	T1.print();
+
+	Tensor::Tensor T2(vec, "inc", -1); 
+	T2.print();
+
+	Tensor::Tensor result = Tensor::add(T1, T2);
+	result.print();
+}
+
+void test_sub()
+{
+	vector <int> vec {2, 2};
+	Tensor::Tensor T1(vec, "inc", -1); 
+	T1.print();
+
+	Tensor::Tensor T2(vec, "const", 1); 
+	T2.print();
+
+	Tensor::Tensor result = Tensor::sub(T1, T2);
+	result.print();
+}
+
+void test_mult()
+{
+	vector <int> vec {2, 2};
+	Tensor::Tensor T1(vec, "inc", -1); 
+	T1.print();
+
+	Tensor::Tensor T2(vec, "inc", -1); 
+	T2.print();
+
+	Tensor::Tensor result = Tensor::mult(T1, T2);
+	result.print();
+}
+
+void test_conv()
+{
+	vector <int> vec {2, 2, 3, 3};
+	Tensor::Tensor filters(vec, "inc", -1); 
+	filters.print();
+
+	vector <int> vec2 {2, 13, 13};
+	Tensor::Tensor input(vec2, "inc", -1); 
+	input.print();
+
+	vector <int> vec3 {2};
+	Tensor::Tensor bias(vec3, "const", 0);
+
+	pair <int, int> stride {2, 3};
+	Tensor::Tensor result = Tensor::conv(input, filters, bias, stride);
+
+	result.print();
+}
+
+
 int main(void)
 {
 
@@ -198,18 +257,8 @@ int main(void)
 
 	OpenCL::initialize_OpenCL();
 	Tensor::init();
-	int size = 10;
 
-	vector <int> vec1 {size,size}; Tensor::Tensor T1(vec1);
-	vector <float> data1(size*size, 1); T1.setValue(data1);
-	T1.print();
-
-	vector <int> vec2 {size, size}; Tensor::Tensor T2(vec2);
-	vector <float> data2(size*size, 2); T2.setValue(data2);
-	T2.print();
-	
-	Tensor::mult(T1, T2, T1);
-
-	T1.print();
+	test_conv();
 
 }
+
