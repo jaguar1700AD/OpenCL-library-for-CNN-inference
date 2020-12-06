@@ -21,6 +21,8 @@ namespace Tensor
     extern cl::Kernel subKernel;
     extern cl::Kernel multKernel;
     extern cl::Kernel convKernel;
+    extern cl::Kernel reluKernel;
+    extern cl::Kernel maxPoolKernel;
 
     extern cl_int err;
     
@@ -45,11 +47,15 @@ namespace Tensor
     Tensor& sub(Tensor& T1, Tensor& T2);
     Tensor& mult(Tensor& T1, Tensor& T2);
     Tensor& conv(Tensor& T, Tensor& filter, Tensor& bias, pair<int,int> stride);
+    Tensor& relu(Tensor& T);
+    Tensor& maxPool(Tensor& T, pair <int,int> filter_size, pair<int,int> stride);
 
     void add(Tensor& T1, Tensor& T2, Tensor& result);
     void sub(Tensor& T1, Tensor& T2, Tensor& result);
     void mult(Tensor& T1, Tensor& T2, Tensor& result);
     void conv(Tensor& T, Tensor& filter, Tensor& bias, pair<int,int> stride, Tensor& result);
+    void relu(Tensor& T, Tensor& result);
+    void maxPool(Tensor& T, pair <int,int> filter_size, pair<int,int> stride, Tensor& result);
 };
 
 #endif

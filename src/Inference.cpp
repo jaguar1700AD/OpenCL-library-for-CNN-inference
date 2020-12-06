@@ -1,7 +1,6 @@
 #define __CL_ENABLE_EXCEPTIONS
 
 #include "include/OpenCL.h"
-#include "include/ConvNN.h"
 #include "include/util.h"
 #include "include/Tensor.h"
 
@@ -38,6 +37,9 @@ void test_sub()
 
 	Tensor::Tensor result = Tensor::sub(T1, T2);
 	result.print();
+
+	result = Tensor::relu(result);
+	result.print();
 }
 
 void test_mult()
@@ -68,7 +70,11 @@ void test_conv()
 
 	pair <int, int> stride {2, 3};
 	Tensor::Tensor result = Tensor::conv(input, filters, bias, stride);
+	result.print();
 
+	pair <int, int> filter_size {3, 2};
+	stride = make_pair(2,2);
+	result = Tensor::maxPool(result, filter_size, stride);
 	result.print();
 }
 

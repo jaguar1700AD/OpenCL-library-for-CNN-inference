@@ -8,6 +8,8 @@ namespace Tensor
     cl::Kernel subKernel;
     cl::Kernel multKernel;
     cl::Kernel convKernel;
+    cl::Kernel reluKernel;
+    cl::Kernel maxPoolKernel;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -64,6 +66,8 @@ namespace Tensor
         subKernel = cl::Kernel(OpenCL::clprogram, "tensor_sub", &err); check_error();
         multKernel = cl::Kernel(OpenCL::clprogram, "tensor_mult", &err); check_error();
         convKernel = cl::Kernel(OpenCL::clprogram, "tensor_conv", &err); check_error();
+        reluKernel = cl::Kernel(OpenCL::clprogram, "tensor_relu", &err); check_error();
+        maxPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_maxPool", &err); check_error();
     }
 
     void check_error()
@@ -193,6 +197,29 @@ namespace Tensor
         return *result;
     }
 
+    Tensor& relu(Tensor& T)
+    {
+        Tensor* result = new Tensor(T.dim, "", -1);
+        relu(T, *result);
+        return *result;
+    }
+
+    Tensor& maxPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride)
+    {
+        int inr = T.dim[1], inc = T.dim[2];
+        int inz = T.dim[0];
+        int kr = filter_size.first, kc = filter_size.second;
+        int strider = stride.first, stridec = stride.second;
+        int outr = (inr - kr) / strider + 1;
+        int outc = (inc - kc) / stridec + 1;
+
+        vector <int> vec {inz, outr, outc};
+        Tensor* result = new Tensor(vec, "", -1);
+        maxPool(T, filter_size, stride, *result);
+
+        return *result;
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void add(Tensor& T1, Tensor& T2, Tensor& result)
@@ -275,6 +302,54 @@ namespace Tensor
 
         cl::NDRange global_dim = cl::NDRange(num_filters, outr, outc);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(convKernel, cl::NullRange, global_dim, cl::NullRange);
+        check_error();
+    }
+
+    void relu(Tensor& T, Tensor& result)
+    {
+        assert(T.dim == result.dim); 
+        
+        reluKernel.setArg(0, T.storageBuffer);
+        reluKernel.setArg(1, result.storageBuffer);
+
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(reluKernel, cl::NullRange, cl::NDRange(T.total_size), cl::NullRange);
+        check_error();
+    }
+
+    void maxPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride, Tensor& result)
+    {
+        assert(T.dim.size() == 3); 
+        assert(T.dim[1] >= filter_size.first); 
+        assert(T.dim[2] >= filter_size.second);
+
+        // global float *image, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, stridec
+
+        int inr = T.dim[1], inc = T.dim[2];
+        int kr = filter_size.first, kc = filter_size.second;
+        int inz = T.dim[0];
+        int strider = stride.first, stridec = stride.second;
+
+        int outr = (inr - kr) / strider + 1;
+        int outc = (inc - kc) / stridec + 1;
+
+        assert(result.dim[0] == inz);
+        assert(result.dim[1] == outr);
+        assert(result.dim[2] == outc);
+
+        maxPoolKernel.setArg(0, T.storageBuffer);
+        maxPoolKernel.setArg(1, result.storageBuffer);
+        maxPoolKernel.setArg(2, inr);
+        maxPoolKernel.setArg(3, inc);
+        maxPoolKernel.setArg(4, inz);
+        maxPoolKernel.setArg(5, kr);
+        maxPoolKernel.setArg(6, kc);
+        maxPoolKernel.setArg(7, outr);
+        maxPoolKernel.setArg(8, outc);
+        maxPoolKernel.setArg(9, strider);
+        maxPoolKernel.setArg(10, stridec);
+
+        cl::NDRange global_dim = cl::NDRange(inz, outr, outc);
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(maxPoolKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
     }
 };
