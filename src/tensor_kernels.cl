@@ -77,3 +77,29 @@ kernel void tensor_maxPool(global float *image, global float* out, int ir, int i
 
     out[planeId*or*oc + rId*oc + cId] = max_val;
  }
+
+ kernel void tensor_avgPool(global float *image, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, stridec)
+{
+    // kr, kc -> Num of rows and columns in the kernel
+    // ir, ic -> Num of rows and columns in the image
+    // iz -> Num of planes in the image = Num of planes in the kernel
+    // or, oc -> Num of rows and columns in the output
+    
+    const int planeId = get_global_id(0); // plane id
+    const int rId = get_global_id(1); // row id
+    const int cId = get_global_id(2); // column id
+
+    float sum = 0;
+    for (int r = 0; r < kr; r++)
+    {
+        for (int c = 0; c < kc; c++)
+        {
+            int r_image = r + strider * rId;
+            int c_image = c + stridec * cId;
+            sum += image[planeId*ir*ic + r_image*ic + c_image];  
+        }
+    }
+    sum = sum / (kr * kc);
+
+    out[planeId*or*oc + rId*oc + cId] = sum;
+ }

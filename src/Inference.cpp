@@ -74,7 +74,7 @@ void test_conv()
 
 	pair <int, int> filter_size {3, 2};
 	stride = make_pair(2,2);
-	result = Tensor::maxPool(result, filter_size, stride);
+	result = Tensor::avgPool(result, filter_size, stride);
 	result.print();
 }
 

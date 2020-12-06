@@ -10,6 +10,7 @@ namespace Tensor
     cl::Kernel convKernel;
     cl::Kernel reluKernel;
     cl::Kernel maxPoolKernel;
+    cl::Kernel avgPoolKernel;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -68,6 +69,7 @@ namespace Tensor
         convKernel = cl::Kernel(OpenCL::clprogram, "tensor_conv", &err); check_error();
         reluKernel = cl::Kernel(OpenCL::clprogram, "tensor_relu", &err); check_error();
         maxPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_maxPool", &err); check_error();
+        avgPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_avgPool", &err); check_error();
     }
 
     void check_error()
@@ -220,6 +222,22 @@ namespace Tensor
         return *result;
     }
 
+    Tensor& avgPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride)
+    {
+        int inr = T.dim[1], inc = T.dim[2];
+        int inz = T.dim[0];
+        int kr = filter_size.first, kc = filter_size.second;
+        int strider = stride.first, stridec = stride.second;
+        int outr = (inr - kr) / strider + 1;
+        int outc = (inc - kc) / stridec + 1;
+
+        vector <int> vec {inz, outr, outc};
+        Tensor* result = new Tensor(vec, "", -1);
+        avgPool(T, filter_size, stride, *result);
+
+        return *result;
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void add(Tensor& T1, Tensor& T2, Tensor& result)
@@ -350,6 +368,43 @@ namespace Tensor
 
         cl::NDRange global_dim = cl::NDRange(inz, outr, outc);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(maxPoolKernel, cl::NullRange, global_dim, cl::NullRange);
+        check_error();
+    }
+
+    void avgPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride, Tensor& result)
+    {
+        assert(T.dim.size() == 3); 
+        assert(T.dim[1] >= filter_size.first); 
+        assert(T.dim[2] >= filter_size.second);
+
+        // global float *image, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, stridec
+
+        int inr = T.dim[1], inc = T.dim[2];
+        int kr = filter_size.first, kc = filter_size.second;
+        int inz = T.dim[0];
+        int strider = stride.first, stridec = stride.second;
+
+        int outr = (inr - kr) / strider + 1;
+        int outc = (inc - kc) / stridec + 1;
+
+        assert(result.dim[0] == inz);
+        assert(result.dim[1] == outr);
+        assert(result.dim[2] == outc);
+
+        avgPoolKernel.setArg(0, T.storageBuffer);
+        avgPoolKernel.setArg(1, result.storageBuffer);
+        avgPoolKernel.setArg(2, inr);
+        avgPoolKernel.setArg(3, inc);
+        avgPoolKernel.setArg(4, inz);
+        avgPoolKernel.setArg(5, kr);
+        avgPoolKernel.setArg(6, kc);
+        avgPoolKernel.setArg(7, outr);
+        avgPoolKernel.setArg(8, outc);
+        avgPoolKernel.setArg(9, strider);
+        avgPoolKernel.setArg(10, stridec);
+
+        cl::NDRange global_dim = cl::NDRange(inz, outr, outc);
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(avgPoolKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
     }
 };
