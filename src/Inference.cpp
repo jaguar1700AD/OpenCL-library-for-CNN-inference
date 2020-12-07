@@ -78,6 +78,20 @@ void test_conv()
 	result.print();
 }
 
+void test_matMult()
+{
+	vector <int> vec {2, 3};
+	Tensor::Tensor T1(vec, "inc", -1); 
+	T1.print();
+
+	vector <int> vec2 {3, 2};
+	Tensor::Tensor T2(vec2, "inc", -1); 
+	T2.print();
+
+	Tensor::Tensor result = Tensor::matMult(T1, T2);
+	result.print();
+}
+
 
 int main(void)
 {
@@ -264,7 +278,12 @@ int main(void)
 	OpenCL::initialize_OpenCL();
 	Tensor::init();
 
-	test_conv();
+	vector <int> vec{2, 3};
+	Tensor::Tensor T1(vec, "inc", -1);
+	T1.print();
+
+	T1.flatten(1);
+	T1.print();
 
 }
 

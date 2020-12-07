@@ -11,6 +11,7 @@ namespace Tensor
     cl::Kernel reluKernel;
     cl::Kernel maxPoolKernel;
     cl::Kernel avgPoolKernel;
+    cl::Kernel matMultKernel;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -44,10 +45,39 @@ namespace Tensor
     vector <float>& Tensor::getValue()
     {
         vector<float>* result = new vector<float>(total_size, -1);
-        err = (OpenCL::clqueue).enqueueReadBuffer(storageBuffer, CL_TRUE, 0, sizeof(float)*total_size, result->data());
-        check_error();
+        if (total_size > 0)
+        {
+            err = (OpenCL::clqueue).enqueueReadBuffer(storageBuffer, CL_TRUE, 0, sizeof(float)*total_size, result->data());
+            check_error();
+        }
 
         return *result;
+    }
+
+    void Tensor::clear()
+    {
+        storageBuffer = NULL;
+        dim.clear();
+        total_size = 0;
+    }
+
+    void Tensor::flatten(int one_dim)
+    {
+        dim.clear();
+        if (one_dim == 0)
+        {
+            dim.push_back(1);
+            dim.push_back(total_size);
+        }
+        else if (one_dim == 1)
+        {
+            dim.push_back(total_size);
+            dim.push_back(1);
+        }
+        else
+        {
+            cout << "Invalid Option in flatten" << endl;
+        }
     }
 
     void Tensor::print()
@@ -70,6 +100,7 @@ namespace Tensor
         reluKernel = cl::Kernel(OpenCL::clprogram, "tensor_relu", &err); check_error();
         maxPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_maxPool", &err); check_error();
         avgPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_avgPool", &err); check_error();
+        matMultKernel = cl::Kernel(OpenCL::clprogram, "tensor_matMult", &err); check_error();
     }
 
     void check_error()
@@ -234,6 +265,21 @@ namespace Tensor
         vector <int> vec {inz, outr, outc};
         Tensor* result = new Tensor(vec, "", -1);
         avgPool(T, filter_size, stride, *result);
+
+        return *result;
+    }
+
+    Tensor& matMult(Tensor& T, Tensor& weight)
+    {
+        assert(T.dim.size() == 2);
+        assert(weight.dim.size() == 2);
+
+        int m = T.dim[0];
+        int n = weight.dim[1];
+
+        vector <int> vec {m, n};
+        Tensor* result = new Tensor(vec, "", -1);
+        matMult(T, weight, *result);
 
         return *result;
     }
@@ -405,6 +451,33 @@ namespace Tensor
 
         cl::NDRange global_dim = cl::NDRange(inz, outr, outc);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(avgPoolKernel, cl::NullRange, global_dim, cl::NullRange);
+        check_error();
+    }
+
+    void matMult(Tensor& T, Tensor& weight, Tensor& result)
+    {
+        assert(T.dim.size() == 2);
+        assert(weight.dim.size() == 2);
+        assert(result.dim.size() == 2);
+        assert(T.dim[1] == weight.dim[0]);
+        assert(result.dim[0] == T.dim[0]);
+        assert(result.dim[1] == weight.dim[1]);
+
+        int m = T.dim[0];
+        int size = T.dim[1];
+        int n = weight.dim[1];
+
+        // global float* image, global float* weights, global float* out, int size, int m, int n
+
+        matMultKernel.setArg(0, T.storageBuffer);
+        matMultKernel.setArg(1, weight.storageBuffer);
+        matMultKernel.setArg(2, result.storageBuffer);
+        matMultKernel.setArg(3, size);
+        matMultKernel.setArg(4, m);
+        matMultKernel.setArg(5, n);
+
+        cl::NDRange global_dim = cl::NDRange(m, n);
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(matMultKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
     }
 };

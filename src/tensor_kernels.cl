@@ -103,3 +103,21 @@ kernel void tensor_maxPool(global float *image, global float* out, int ir, int i
 
     out[planeId*or*oc + rId*oc + cId] = sum;
  }
+
+kernel void tensor_matMult(global float* image, global float* weights, global float* out, int size, int m, int n)
+{
+    // Image -> (m, size)
+    // weights -> (size, n)
+    // out -> (m, n)
+
+    const int rid = get_global_id(0); // rid row selected in image
+    const int cid = get_global_id(1); // cid column selected in weights
+
+    float sum = 0;
+    for(int i = 0; i < size; i++)
+    {
+        sum += image[rid * size + i] * weights[i * n + cid];
+    }
+
+    out[rid * n + cid] = sum;
+}
