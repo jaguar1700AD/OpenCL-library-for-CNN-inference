@@ -43,6 +43,11 @@ AlexNet::AlexNet()
 
 Tensor::Tensor AlexNet::forward(Tensor::Tensor input)
 {
+    assert(input.dim.size() == 3);
+    assert(input.dim[0] == 3);
+    assert(input.dim[1] == 224);
+    assert(input.dim[2] == 224);
+
     input = Tensor::conv(input, filter[0], filter_bias[0], make_pair(4, 4));
     input = Tensor::pad(input, make_pair(2, 2), 0);
     input = Tensor::relu(input);
