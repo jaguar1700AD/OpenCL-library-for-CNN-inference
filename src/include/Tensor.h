@@ -36,14 +36,15 @@ namespace Tensor
         vector <int> dim;
         int total_size;
 
-        Tensor(vector <int>& dim, string str, int val);
+        Tensor(vector <int> dim, string str, int val);
         void setValue(vector <float>& values);
         vector <float>& getValue();
         void clear();
 
         void flatten(int one_dim);
-        void reshape(vector <int>& new_dim);
+        void reshape(vector <int> new_dim);
 
+        void print_dim();
         void print();
     };
 

@@ -16,7 +16,7 @@ namespace Tensor
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    Tensor::Tensor(vector <int>& dim, string str, int val)
+    Tensor::Tensor(vector <int> dim, string str, int val)
     {
         this->dim = dim;
         total_size = 1;
@@ -81,7 +81,7 @@ namespace Tensor
         }
     }
 
-    void Tensor::reshape(vector <int>& new_dim)
+    void Tensor::reshape(vector <int> new_dim)
     {
         int new_tot_size = 1;
         for(int i = 0; i < new_dim.size(); i++) new_tot_size *= new_dim[i];
@@ -90,10 +90,22 @@ namespace Tensor
         dim = new_dim;
     }
 
+    void Tensor::print_dim()
+    {
+        cout << "------------- Tensor Dimensions ----------------" << endl;
+        cout << "Dim: ";
+        for(int i = 0; i < dim.size(); i++) cout << dim[i] << " ";
+        cout << endl;
+        cout << "--------------------------------------------" << endl;
+    }
+
     void Tensor::print()
     {
         vector<float> result = getValue();
         cout << "------------- Tensor Values ----------------" << endl;
+        cout << "Dim: ";
+        for(int i = 0; i < dim.size(); i++) cout << dim[i] << " ";
+        cout << endl;
         for(int i = 0; i < result.size(); i++) cout << result[i] << " ";
         cout << endl;
         cout << "--------------------------------------------" << endl;

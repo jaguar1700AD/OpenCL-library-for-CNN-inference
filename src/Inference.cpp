@@ -3,6 +3,7 @@
 #include "include/OpenCL.h"
 #include "include/util.h"
 #include "include/Tensor.h"
+#include "include/ConvNets.hpp"
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -283,7 +284,13 @@ int main(void)
 	OpenCL::initialize_OpenCL();
 	Tensor::init();
 
-	test_matMult();
+	AlexNet CNN;
 
+	for(int i = 0; i < 1000; i++)
+	{
+		Tensor::Tensor input(vector<int> {3,224,224}, "inc", -1);
+		input = CNN.forward(input);
+		cout << i << endl;
+	}
 }
 
