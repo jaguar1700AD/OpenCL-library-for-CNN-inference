@@ -12,6 +12,7 @@ namespace Tensor
     cl::Kernel maxPoolKernel;
     cl::Kernel avgPoolKernel;
     cl::Kernel matMultKernel;
+    cl::Kernel padKernel;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -80,6 +81,15 @@ namespace Tensor
         }
     }
 
+    void Tensor::reshape(vector <int>& new_dim)
+    {
+        int new_tot_size = 1;
+        for(int i = 0; i < new_dim.size(); i++) new_tot_size *= new_dim[i];
+        assert(total_size == new_tot_size);
+
+        dim = new_dim;
+    }
+
     void Tensor::print()
     {
         vector<float> result = getValue();
@@ -101,6 +111,7 @@ namespace Tensor
         maxPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_maxPool", &err); check_error();
         avgPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_avgPool", &err); check_error();
         matMultKernel = cl::Kernel(OpenCL::clprogram, "tensor_matMult", &err); check_error();
+        padKernel = cl::Kernel(OpenCL::clprogram, "tensor_pad", &err); check_error();
     }
 
     void check_error()
@@ -280,6 +291,19 @@ namespace Tensor
         vector <int> vec {m, n};
         Tensor* result = new Tensor(vec, "", -1);
         matMult(T, weight, *result);
+
+        return *result;
+    }
+
+    Tensor& pad(Tensor& T, pair<int,int> amt, float pad_val)
+    {
+        assert(T.dim.size() == 3);
+        int iz = T.dim[0], ir = T.dim[1], ic = T.dim[2];
+        int padr = amt.first, padc = amt.second;
+
+        vector <int> vec{iz, ir + 2*padr, ic + 2*padc};
+        Tensor* result = new Tensor(vec, "", -1);
+        pad(T, amt, pad_val, *result);
 
         return *result;
     }
@@ -478,6 +502,32 @@ namespace Tensor
 
         cl::NDRange global_dim = cl::NDRange(m, n);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(matMultKernel, cl::NullRange, global_dim, cl::NullRange);
+        check_error();
+    }
+
+    void pad(Tensor& T, pair<int,int> amt, float pad_val, Tensor& result)
+    {
+        assert(T.dim.size() == 3);
+        int iz = T.dim[0], ir = T.dim[1], ic = T.dim[2];
+        int padr = amt.first, padc = amt.second;
+        assert(result.dim[0] == iz);
+        assert(result.dim[1] == ir + 2 * padr);
+        assert(result.dim[2] == ic + 2 * padc);
+        int outr = result.dim[1], outc = result.dim[2];
+
+        // global float* image, global float* out, int ir, int ic, int iz, int padr, int padc, float pad_val
+
+        padKernel.setArg(0, T.storageBuffer);
+        padKernel.setArg(1, result.storageBuffer);
+        padKernel.setArg(2, ir);
+        padKernel.setArg(3, ic);
+        padKernel.setArg(4, iz);
+        padKernel.setArg(5, padr);
+        padKernel.setArg(6, padc);
+        padKernel.setArg(7, pad_val);
+
+        cl::NDRange global_dim = cl::NDRange(iz, outr, outc);
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(padKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
     }
 };

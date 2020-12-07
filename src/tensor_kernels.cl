@@ -121,3 +121,27 @@ kernel void tensor_matMult(global float* image, global float* weights, global fl
 
     out[rid * n + cid] = sum;
 }
+
+kernel void tensor_pad(global float* image, global float* out, int ir, int ic, int iz, int padr, int padc, float pad_val)
+{
+    // Image -> (iz, ir, ic)
+    // out -> (iz, ir + 2*padr, ic + 2*padc)
+
+    const int zId = get_global_id(0);
+    const int rId = get_global_id(1);
+    const int cId = get_global_id(2);
+
+    float value = pad_val;
+    int rimage = rId - padr;
+    int cimage = cId - padc;
+    int oz = iz;
+    int or = ir + 2*padr;
+    int oc = ic + 2*padc;
+
+    if (rimage >= 0 && rimage < ir && cimage >= 0 && cimage < ic) 
+    {
+        value = image[zId * ir * ic + rimage * ic + cimage];
+    }
+
+    out[zId * or * oc + rId * oc + cId] = value;
+}

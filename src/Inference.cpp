@@ -89,7 +89,12 @@ void test_matMult()
 	T2.print();
 
 	Tensor::Tensor result = Tensor::matMult(T1, T2);
+	vector <int> vec3 {1,2,2};
+	result.reshape(vec3);
 	result.print();
+
+	Tensor::Tensor result1 = Tensor::pad(result, make_pair(1, 2), 1);
+	result1.print();
 }
 
 
@@ -278,12 +283,7 @@ int main(void)
 	OpenCL::initialize_OpenCL();
 	Tensor::init();
 
-	vector <int> vec{2, 3};
-	Tensor::Tensor T1(vec, "inc", -1);
-	T1.print();
-
-	T1.flatten(1);
-	T1.print();
+	test_matMult();
 
 }
 

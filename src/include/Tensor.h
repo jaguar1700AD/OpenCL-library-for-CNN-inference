@@ -25,6 +25,7 @@ namespace Tensor
     extern cl::Kernel maxPoolKernel;
     extern cl::Kernel avgPoolKernel;
     extern cl::Kernel matMultKernel;
+    extern cl::Kernel padKernel;
 
     extern cl_int err;
     
@@ -41,6 +42,7 @@ namespace Tensor
         void clear();
 
         void flatten(int one_dim);
+        void reshape(vector <int>& new_dim);
 
         void print();
     };
@@ -56,6 +58,7 @@ namespace Tensor
     Tensor& maxPool(Tensor& T, pair <int,int> filter_size, pair<int,int> stride);
     Tensor& avgPool(Tensor& T, pair <int,int> filter_size, pair<int,int> stride);
     Tensor& matMult(Tensor& T, Tensor& weight);
+    Tensor& pad(Tensor& T, pair<int,int> amt, float pad_val);
 
     void add(Tensor& T1, Tensor& T2, Tensor& result);
     void sub(Tensor& T1, Tensor& T2, Tensor& result);
@@ -65,6 +68,7 @@ namespace Tensor
     void maxPool(Tensor& T, pair <int,int> filter_size, pair<int,int> stride, Tensor& result);
     void avgPool(Tensor& T, pair <int,int> filter_size, pair<int,int> stride, Tensor& result);
     void matMult(Tensor& T, Tensor& weight, Tensor& result);
+    void pad(Tensor& T, pair<int,int> amt, float pad_val, Tensor& result);
 };
 
 #endif
