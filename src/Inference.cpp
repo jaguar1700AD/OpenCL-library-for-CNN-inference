@@ -284,13 +284,15 @@ int main(void)
 	OpenCL::initialize_OpenCL();
 	Tensor::init();
 
-	AlexNet CNN;
+	AlexNet CNN(false);
+	CNN.readData();
+	CNN.printModel();
 
-	for(int i = 0; i < 1000; i++)
-	{
-		Tensor::Tensor input(vector<int> {3,224,224}, "inc", -1);
-		input = CNN.forward(input);
-		cout << i << endl;
-	}
+	// for(int i = 0; i < 1000; i++)
+	// {
+	// 	Tensor::Tensor input(vector<int> {3,224,224}, "inc", -1);
+	// 	input = CNN.forward(input);
+	// 	cout << i << endl;
+	// }
 }
 

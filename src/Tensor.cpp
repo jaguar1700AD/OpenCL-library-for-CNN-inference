@@ -320,6 +320,20 @@ namespace Tensor
         return *result;
     }
 
+    Tensor& fc(Tensor& T, Tensor& weight)
+    {
+        assert(T.dim.size() == 1);
+        assert(weight.dim.size() == 2);
+
+        int m = weight.dim[0];
+
+        vector <int> vec {m, 1};
+        Tensor* result = new Tensor(vec, "", -1);
+        fc(T, weight, *result);
+
+        return *result;
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void add(Tensor& T1, Tensor& T2, Tensor& result)
@@ -541,5 +555,13 @@ namespace Tensor
         cl::NDRange global_dim = cl::NDRange(iz, outr, outc);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(padKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
+    }
+
+    void fc(Tensor& T, Tensor& weight, Tensor& result)
+    {
+        T.dim.push_back(1);
+        matMult(weight, T, result);
+        T.dim.pop_back();
+        result.dim.pop_back();
     }
 };
