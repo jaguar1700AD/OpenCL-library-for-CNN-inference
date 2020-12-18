@@ -3,7 +3,7 @@
 #include "include/OpenCL.h"
 #include "include/util.h"
 #include "include/Tensor.h"
-#include "include/ConvNets.hpp"
+#include "include/ConvNets.h"
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
