@@ -9,6 +9,13 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
+#include <stdint.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "include/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "include/stb_image_write.h"
+
 void read_Mnist(std::string filename, std::vector<std::vector<float>> &vec);
 void read_Mnist_Label(std::string filename, std::vector<std::vector<float>> &vec, std::vector<float> &testtargets, bool testflag);
 void printInput(std::vector<float> &inputs);
@@ -281,12 +288,12 @@ int main(void)
 	// 	std::cout << "An exception occurred. Exception Nr. " << e << '\n';
 	// }
 
-	OpenCL::initialize_OpenCL();
-	Tensor::init();
+	// OpenCL::initialize_OpenCL();
+	// Tensor::init();
 
-	AlexNet CNN(false);
-	CNN.readData();
-	CNN.printModel();
+	// AlexNet CNN(false);
+	// CNN.readData("Alexnet");
+	// CNN.printModel();
 
 	// for(int i = 0; i < 1000; i++)
 	// {
@@ -294,5 +301,15 @@ int main(void)
 	// 	input = CNN.forward(input);
 	// 	cout << i << endl;
 	// }
+
+	int width, height, bpp;
+
+	char path[] = "./src/data/Datasets/Imagenet/train/n01440764/ILSVRC2012_val_00010306.JPEG";
+    uint8_t* rgb_image = stbi_load(path, &width, &height, &bpp, 3);
+	stbi_write_jpg("/home/shashank/Desktop/image.JPEG", width, height, 3, rgb_image, width* 3);
+
+	stbi_image_free(rgb_image);
+
+    return 0;
 }
 

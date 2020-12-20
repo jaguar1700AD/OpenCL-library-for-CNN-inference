@@ -19,14 +19,14 @@ public:
 
     virtual Tensor::Tensor forward(Tensor::Tensor input) = 0;
 
-    void readData();
+    void readData(string name);
     void printModel();
     void printModelWeights();
 };
 
 void ConvNet::readTensorSet(vector <Tensor::Tensor>& tensor_store, string file_name)
 {
-    string global_path = "./src/data/";
+    string global_path = "./src/data/Models/";
 
     tensor_store.clear();
 
@@ -58,15 +58,15 @@ void ConvNet::readTensorSet(vector <Tensor::Tensor>& tensor_store, string file_n
     file.close();
 }
 
-void ConvNet::readData()
+void ConvNet::readData(string name)
 {
-    readTensorSet(filter, "filters.txt");
+    readTensorSet(filter, name + "/filters.txt");
     cout << "Read all filters" << endl;
-    readTensorSet(weight, "weights.txt");
+    readTensorSet(weight, name + "/weights.txt");
     cout << "Read all weights" << endl;
-    readTensorSet(filter_bias, "filters_bias.txt");
+    readTensorSet(filter_bias, name + "/filters_bias.txt");
     cout << "Read all filter biases" << endl;
-    readTensorSet(weight_bias, "weights_bias.txt");
+    readTensorSet(weight_bias, name + "/weights_bias.txt");
     cout << "Read all weight biases" << endl;
 }
 
