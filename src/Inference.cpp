@@ -10,11 +10,18 @@
 #include "opencv2/highgui/highgui.hpp"
 
 #include <stdint.h>
+#include <stdio.h>
+#include <dirent.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "include/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "include/stb_image_write.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "include/stb_image_resize.h"
+
+#define IW 224
+#define IH 224
 
 void read_Mnist(std::string filename, std::vector<std::vector<float>> &vec);
 void read_Mnist_Label(std::string filename, std::vector<std::vector<float>> &vec, std::vector<float> &testtargets, bool testflag);
@@ -105,6 +112,72 @@ void test_matMult()
 	result1.print();
 }
 
+vector <float>& process(uint8_t* input_image, int width, int height, int depth)
+{
+	float mean[] = {0.485, 0.456, 0.406};
+	float std[] = {0.229, 0.224, 0.225};
+
+	uint8_t* image = (uint8_t*) malloc (sizeof(uint8_t) * IW * IH * depth);
+	stbir_resize_uint8(input_image, width, height, 0, image, IW, IH, 0, depth);
+
+	vector <float>* ret_image = new vector<float>;
+	for(int channel = 0; channel < depth; channel++)
+	{
+		for(int row = 0; row < IH; row++)
+		{
+			for(int col = 0; col < IW; col++)
+			{
+				float value = image[row * IW * depth + col * depth + channel] / 255.0;
+				value = (value - mean[channel]) / std[channel];
+				ret_image->push_back(value);
+			}
+		}
+	}
+	return *ret_image;
+}
+
+void check_accuracy()
+{
+	int width, height, depth;
+
+	char path[] = "./src/data/Datasets/Imagenet/train/n01440764/ILSVRC2012_val_00010306.JPEG";
+    uint8_t* rgb_image = stbi_load(path, &width, &height, &depth, 3);
+	cout << height << " " << width << " " << depth << endl;
+	
+	vector <float> image = process(rgb_image, width, height, depth);
+	for(int i = 0; i < depth; i++)
+	{
+		cout << image[i * IW * IH] << endl;
+	}
+
+	stbi_image_free(rgb_image);
+
+	struct dirent *entry = nullptr;
+    DIR *dp = nullptr;
+	char base[] = "./src/data/Datasets/Imagenet/val/";
+    dp = opendir(base);
+	while ((entry = readdir(dp)))
+	{
+		if (entry->d_name[0] == '.') continue;
+
+		char sub_name[1000] = "";
+		strcat(sub_name, base);
+		strcat(sub_name, entry->d_name);
+
+		cout << entry->d_name << "-------------" << endl;
+		
+		DIR* sub_dp = opendir(sub_name);
+		while((entry = readdir(sub_dp)))
+		{
+			if (entry->d_name[0] == '.') continue;
+			cout << entry->d_name << endl;
+		}
+		closedir(sub_dp);
+
+	}
+    closedir(dp);
+
+}
 
 int main(void)
 {
@@ -301,14 +374,6 @@ int main(void)
 	// 	input = CNN.forward(input);
 	// 	cout << i << endl;
 	// }
-
-	int width, height, bpp;
-
-	char path[] = "./src/data/Datasets/Imagenet/train/n01440764/ILSVRC2012_val_00010306.JPEG";
-    uint8_t* rgb_image = stbi_load(path, &width, &height, &bpp, 3);
-	stbi_write_jpg("/home/shashank/Desktop/image.JPEG", width, height, 3, rgb_image, width* 3);
-
-	stbi_image_free(rgb_image);
 
     return 0;
 }
