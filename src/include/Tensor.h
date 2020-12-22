@@ -46,6 +46,9 @@ namespace Tensor
 
         void print_dim();
         void print();
+
+        float max();
+        int max_ind();
     };
 
     void init();

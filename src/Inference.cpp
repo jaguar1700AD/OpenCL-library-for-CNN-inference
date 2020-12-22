@@ -20,13 +20,25 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "include/stb_image_resize.h"
 
-#define IW 224
-#define IH 224
+#define ID 3    // Image Depth
+#define IW 224  // Image Width
+#define IH 224  // Image Height
 
 void read_Mnist(std::string filename, std::vector<std::vector<float>> &vec);
 void read_Mnist_Label(std::string filename, std::vector<std::vector<float>> &vec, std::vector<float> &testtargets, bool testflag);
 void printInput(std::vector<float> &inputs);
 void read_CIFAR10(cv::Mat &trainX, cv::Mat &testX, cv::Mat &trainY, cv::Mat &testY);
+
+char* concat(const char* str1, const char* str2, bool is_dir)
+{
+	char* ret = (char*) malloc(sizeof(char) * 1000);
+	strcpy(ret, str1);
+	strcat(ret, str2);
+
+	if (is_dir) strcat(ret, "/");
+
+	return ret;
+}
 
 void test_add()
 {
@@ -112,22 +124,22 @@ void test_matMult()
 	result1.print();
 }
 
-vector <float>& process(uint8_t* input_image, int width, int height, int depth)
+vector <float>& process(uint8_t* input_image, int width, int height)
 {
 	float mean[] = {0.485, 0.456, 0.406};
 	float std[] = {0.229, 0.224, 0.225};
 
-	uint8_t* image = (uint8_t*) malloc (sizeof(uint8_t) * IW * IH * depth);
-	stbir_resize_uint8(input_image, width, height, 0, image, IW, IH, 0, depth);
+	uint8_t* image = (uint8_t*) malloc (sizeof(uint8_t) * IW * IH * ID);
+	stbir_resize_uint8(input_image, width, height, 0, image, IW, IH, 0, ID);
 
 	vector <float>* ret_image = new vector<float>;
-	for(int channel = 0; channel < depth; channel++)
+	for(int channel = 0; channel < ID; channel++)
 	{
 		for(int row = 0; row < IH; row++)
 		{
 			for(int col = 0; col < IW; col++)
 			{
-				float value = image[row * IW * depth + col * depth + channel] / 255.0;
+				float value = image[row * IW * ID + col * ID + channel] / 255.0;
 				value = (value - mean[channel]) / std[channel];
 				ret_image->push_back(value);
 			}
@@ -136,47 +148,80 @@ vector <float>& process(uint8_t* input_image, int width, int height, int depth)
 	return *ret_image;
 }
 
-void check_accuracy()
+bool char_compare(char* str1, char* str2)
 {
-	int width, height, depth;
+	string s1 = str1, s2 = str2;
+	if (s1 < s2) return true;
+	return false;
+}
 
-	char path[] = "./src/data/Datasets/Imagenet/train/n01440764/ILSVRC2012_val_00010306.JPEG";
-    uint8_t* rgb_image = stbi_load(path, &width, &height, &depth, 3);
-	cout << height << " " << width << " " << depth << endl;
-	
-	vector <float> image = process(rgb_image, width, height, depth);
-	for(int i = 0; i < depth; i++)
-	{
-		cout << image[i * IW * IH] << endl;
-	}
-
-	stbi_image_free(rgb_image);
+vector <char*>& sorted_dir_entries(char* path)
+{
+	vector <char*>* result = new vector <char*>;
 
 	struct dirent *entry = nullptr;
     DIR *dp = nullptr;
-	char base[] = "./src/data/Datasets/Imagenet/val/";
-    dp = opendir(base);
+    dp = opendir(path);
 	while ((entry = readdir(dp)))
 	{
 		if (entry->d_name[0] == '.') continue;
+		char* str = (char*) malloc(sizeof(char) * (strlen(entry->d_name) + 1));
+		strcpy(str, entry->d_name);
+		result->push_back(str);
+	}
+	closedir(dp);
 
-		char sub_name[1000] = "";
-		strcat(sub_name, base);
-		strcat(sub_name, entry->d_name);
+	sort(result->begin(), result->end(), char_compare);
 
-		cout << entry->d_name << "-------------" << endl;
+	return *result;
+}
+
+void check_accuracy()
+{
+	OpenCL::initialize_OpenCL();
+	Tensor::init();
+
+	AlexNet CNN(false);
+	CNN.readData("Alexnet");
+	// CNN.printModel();
+
+	char base[] = "./src/data/Datasets/Imagenet/train/";
+	vector <char*> sub_dirs = sorted_dir_entries(base);
+
+	int category = 0;
+	int correct = 0;
+	int tot_image = 0;
+	for(int i = 0; i < sub_dirs.size(); i++)
+	{
+		char* sub_dir_path = concat(base, sub_dirs[i], true);
 		
-		DIR* sub_dp = opendir(sub_name);
+		DIR* sub_dp = opendir(sub_dir_path);
+		struct dirent* entry = nullptr;
 		while((entry = readdir(sub_dp)))
 		{
 			if (entry->d_name[0] == '.') continue;
-			cout << entry->d_name << endl;
+			//cout << entry->d_name << endl;
+
+			int width, height, depth;
+			char* path = concat(sub_dir_path, entry->d_name, false);
+			//cout << path << endl;
+			uint8_t* rgb_image = stbi_load(path, &width, &height, &depth, 3);
+			//cout << depth << " " << height << " " << width << " " << endl;
+			vector <float> image = process(rgb_image, width, height);
+			//if (depth != 3) cout << depth << " " << height << " " << width << " " << endl;
+			Tensor::Tensor X(vector <int> {ID, IH, IW}, "", -1);
+			X.setValue(image);
+			X = CNN.forward(X);
+			int predn = X.max_ind();
+
+			if (predn == category) correct++;
+			tot_image++;
+
+			cout << "\r" << correct << " / " << tot_image << " ( " << (correct * 100.0 / tot_image) << "% ) " << flush;
 		}
 		closedir(sub_dp);
-
+		category++;
 	}
-    closedir(dp);
-
 }
 
 int main(void)
@@ -361,19 +406,7 @@ int main(void)
 	// 	std::cout << "An exception occurred. Exception Nr. " << e << '\n';
 	// }
 
-	// OpenCL::initialize_OpenCL();
-	// Tensor::init();
-
-	// AlexNet CNN(false);
-	// CNN.readData("Alexnet");
-	// CNN.printModel();
-
-	// for(int i = 0; i < 1000; i++)
-	// {
-	// 	Tensor::Tensor input(vector<int> {3,224,224}, "inc", -1);
-	// 	input = CNN.forward(input);
-	// 	cout << i << endl;
-	// }
+	check_accuracy();
 
     return 0;
 }

@@ -111,6 +111,32 @@ namespace Tensor
         cout << "--------------------------------------------" << endl;
     }
 
+    float Tensor::max()
+    {
+        vector<float> result = getValue();
+        float max_val = result[0];
+        for(int i = 1; i < total_size; i++) max_val = std::max(max_val, result[i]);
+        return max_val;
+    }
+
+    int Tensor::max_ind()
+    {
+        assert(dim.size() == 1);
+        vector<float> result = getValue();
+        float max_val = result[0];
+        int max_ind = 0;
+        for(int i = 1; i < total_size; i++) 
+        {
+            if (result[i] > max_val)
+            {
+                max_val = result[i];
+                max_ind = i;
+            }
+        }
+        return max_ind;
+    }
+
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void init()
