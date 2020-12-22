@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef THESIS_INCLUDE_H
-#define THESIS_INCLUDE_H
+#ifndef INCLUDE_H
+#define INCLUDE_H
 
 #define CL_HPP_ENABLE_EXCEPTIONS
 #define CL_HPP_TARGET_OPENCL_VERSION 200
@@ -11,18 +11,14 @@
 #include "CL/cl.hpp"
 #include "OpenCL.h"
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <string>
 #include <fstream>
 #include <math.h>
+#include <bits/stdc++.h>
 
 using namespace std;
 
-
-#endif //THESIS_INCLUDE_H
+#endif // INCLUDE_H

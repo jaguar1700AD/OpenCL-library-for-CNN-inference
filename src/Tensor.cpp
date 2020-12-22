@@ -43,7 +43,7 @@ namespace Tensor
         err = (OpenCL::clqueue).enqueueWriteBuffer(storageBuffer, CL_TRUE, 0, sizeof(float)*total_size, values.data());
         check_error();
     }
-    vector <float>& Tensor::getValue()
+    vector <float>* Tensor::getValue() 
     {
         vector<float>* result = new vector<float>(total_size, -1);
         if (total_size > 0)
@@ -52,7 +52,7 @@ namespace Tensor
             check_error();
         }
 
-        return *result;
+        return result;
     }
 
     void Tensor::clear()
@@ -101,38 +101,41 @@ namespace Tensor
 
     void Tensor::print()
     {
-        vector<float> result = getValue();
+        vector<float>* result = getValue();
         cout << "------------- Tensor Values ----------------" << endl;
         cout << "Dim: ";
         for(int i = 0; i < dim.size(); i++) cout << dim[i] << " ";
         cout << endl;
-        for(int i = 0; i < result.size(); i++) cout << result[i] << " ";
+        for(int i = 0; i < (*result).size(); i++) cout << (*result)[i] << " ";
         cout << endl;
         cout << "--------------------------------------------" << endl;
+        delete(result);
     }
 
     float Tensor::max()
     {
-        vector<float> result = getValue();
-        float max_val = result[0];
-        for(int i = 1; i < total_size; i++) max_val = std::max(max_val, result[i]);
+        vector<float>* result = getValue();
+        float max_val = (*result)[0];
+        for(int i = 1; i < total_size; i++) max_val = std::max(max_val, (*result)[i]);
+        delete(result);
         return max_val;
     }
 
     int Tensor::max_ind()
     {
         assert(dim.size() == 1);
-        vector<float> result = getValue();
-        float max_val = result[0];
+        vector<float>* result = getValue();
+        float max_val = (*result)[0];
         int max_ind = 0;
         for(int i = 1; i < total_size; i++) 
         {
-            if (result[i] > max_val)
+            if ((*result)[i] > max_val)
             {
-                max_val = result[i];
+                max_val = (*result)[i];
                 max_ind = i;
             }
         }
+        delete(result);
         return max_ind;
     }
 
@@ -242,130 +245,11 @@ namespace Tensor
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    Tensor& add(Tensor& T1, Tensor& T2)
-    {
-        Tensor* result = new Tensor(T1.dim, "", -1);
-        add(T1, T2, *result);
-        return *result;
-    }
-
-    Tensor& sub(Tensor& T1, Tensor& T2)
-    {
-        Tensor* result = new Tensor(T1.dim, "", -1);
-        sub(T1, T2, *result);
-        return *result;
-    }
-
-    Tensor& mult(Tensor& T1, Tensor& T2)
-    {
-        Tensor* result = new Tensor(T1.dim, "", -1);
-        mult(T1, T2, *result);
-        return *result;
-    }
-
-    Tensor& conv(Tensor& T, Tensor& filter, Tensor& bias,  pair<int,int> stride)
-    {
-        int num_filters = filter.dim[0];
-        int inr = T.dim[1], inc = T.dim[2];
-        int kr = filter.dim[2], kc = filter.dim[3];
-        int strider = stride.first, stridec = stride.second;
-        int outr = (inr - kr) / strider + 1;
-        int outc = (inc - kc) / stridec + 1;
-
-        vector <int> vec {num_filters, outr, outc};
-        Tensor* result = new Tensor(vec, "", -1);
-        conv(T, filter, bias, stride, *result);
-
-        return *result;
-    }
-
-    Tensor& relu(Tensor& T)
-    {
-        Tensor* result = new Tensor(T.dim, "", -1);
-        relu(T, *result);
-        return *result;
-    }
-
-    Tensor& maxPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride)
-    {
-        int inr = T.dim[1], inc = T.dim[2];
-        int inz = T.dim[0];
-        int kr = filter_size.first, kc = filter_size.second;
-        int strider = stride.first, stridec = stride.second;
-        int outr = (inr - kr) / strider + 1;
-        int outc = (inc - kc) / stridec + 1;
-
-        vector <int> vec {inz, outr, outc};
-        Tensor* result = new Tensor(vec, "", -1);
-        maxPool(T, filter_size, stride, *result);
-
-        return *result;
-    }
-
-    Tensor& avgPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride)
-    {
-        int inr = T.dim[1], inc = T.dim[2];
-        int inz = T.dim[0];
-        int kr = filter_size.first, kc = filter_size.second;
-        int strider = stride.first, stridec = stride.second;
-        int outr = (inr - kr) / strider + 1;
-        int outc = (inc - kc) / stridec + 1;
-
-        vector <int> vec {inz, outr, outc};
-        Tensor* result = new Tensor(vec, "", -1);
-        avgPool(T, filter_size, stride, *result);
-
-        return *result;
-    }
-
-    Tensor& matMult(Tensor& T, Tensor& weight)
-    {
-        assert(T.dim.size() == 2);
-        assert(weight.dim.size() == 2);
-
-        int m = T.dim[0];
-        int n = weight.dim[1];
-
-        vector <int> vec {m, n};
-        Tensor* result = new Tensor(vec, "", -1);
-        matMult(T, weight, *result);
-
-        return *result;
-    }
-
-    Tensor& pad(Tensor& T, pair<int,int> amt, float pad_val)
-    {
-        assert(T.dim.size() == 3);
-        int iz = T.dim[0], ir = T.dim[1], ic = T.dim[2];
-        int padr = amt.first, padc = amt.second;
-
-        vector <int> vec{iz, ir + 2*padr, ic + 2*padc};
-        Tensor* result = new Tensor(vec, "", -1);
-        pad(T, amt, pad_val, *result);
-
-        return *result;
-    }
-
-    Tensor& fc(Tensor& T, Tensor& weight)
-    {
-        assert(T.dim.size() == 1);
-        assert(weight.dim.size() == 2);
-
-        int m = weight.dim[0];
-
-        vector <int> vec {m, 1};
-        Tensor* result = new Tensor(vec, "", -1);
-        fc(T, weight, *result);
-
-        return *result;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    void add(Tensor& T1, Tensor& T2, Tensor& result)
+    Tensor add(Tensor& T1, Tensor& T2)
     {
         assert(T1.dim == T2.dim); 
-        assert(T2.dim == result.dim);
+
+        Tensor result(T1.dim, "", -1);
 
         addKernel.setArg(0, T1.storageBuffer);
         addKernel.setArg(1, T2.storageBuffer);
@@ -373,12 +257,15 @@ namespace Tensor
 
         err = (OpenCL::clqueue).enqueueNDRangeKernel(addKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
         check_error();
+
+        return result;
     }
 
-    void sub(Tensor& T1, Tensor& T2, Tensor& result)
+    Tensor sub(Tensor& T1, Tensor& T2)
     {
         assert(T1.dim == T2.dim); 
-        assert(T2.dim == result.dim);
+
+        Tensor result(T1.dim, "", -1);
 
         subKernel.setArg(0, T1.storageBuffer);
         subKernel.setArg(1, T2.storageBuffer);
@@ -386,12 +273,15 @@ namespace Tensor
 
         err = (OpenCL::clqueue).enqueueNDRangeKernel(subKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
         check_error();
+
+        return result;
     }
 
-    void mult(Tensor& T1, Tensor& T2, Tensor& result)
+    Tensor mult(Tensor& T1, Tensor& T2)
     {
         assert(T1.dim == T2.dim); 
-        assert(T2.dim == result.dim);
+        
+        Tensor result(T1.dim, "", -1);
 
         multKernel.setArg(0, T1.storageBuffer);
         multKernel.setArg(1, T2.storageBuffer);
@@ -399,9 +289,11 @@ namespace Tensor
 
         err = (OpenCL::clqueue).enqueueNDRangeKernel(multKernel, cl::NullRange, cl::NDRange(T1.total_size), cl::NullRange);
         check_error();
+
+        return result;
     }
 
-    void conv(Tensor& T, Tensor& filter, Tensor& bias,  pair<int,int> stride, Tensor& result)
+    Tensor conv(Tensor& T, Tensor& filter, Tensor& bias,  pair<int,int> stride)
     {
         assert(T.dim.size() == 3);
         assert(filter.dim.size() == 4);
@@ -422,9 +314,7 @@ namespace Tensor
         int outr = (inr - kr) / strider + 1;
         int outc = (inc - kc) / stridec + 1;
 
-        assert(result.dim[0] == num_filters);
-        assert(result.dim[1] == outr);
-        assert(result.dim[2] == outc);
+        Tensor result(vector <int> {num_filters, outr, outc}, "", -1);
 
         convKernel.setArg(0, T.storageBuffer);
         convKernel.setArg(1, filter.storageBuffer);
@@ -443,20 +333,24 @@ namespace Tensor
         cl::NDRange global_dim = cl::NDRange(num_filters, outr, outc);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(convKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
+
+        return result;
     }
 
-    void relu(Tensor& T, Tensor& result)
+    Tensor relu(Tensor& T)
     {
-        assert(T.dim == result.dim); 
+        Tensor result(T.dim, "", -1);
         
         reluKernel.setArg(0, T.storageBuffer);
         reluKernel.setArg(1, result.storageBuffer);
 
         err = (OpenCL::clqueue).enqueueNDRangeKernel(reluKernel, cl::NullRange, cl::NDRange(T.total_size), cl::NullRange);
         check_error();
+
+        return result;
     }
 
-    void maxPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride, Tensor& result)
+    Tensor maxPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride)
     {
         assert(T.dim.size() == 3); 
         assert(T.dim[1] >= filter_size.first); 
@@ -472,9 +366,7 @@ namespace Tensor
         int outr = (inr - kr) / strider + 1;
         int outc = (inc - kc) / stridec + 1;
 
-        assert(result.dim[0] == inz);
-        assert(result.dim[1] == outr);
-        assert(result.dim[2] == outc);
+        Tensor result(vector <int> {inz, outr, outc}, "", -1);
 
         maxPoolKernel.setArg(0, T.storageBuffer);
         maxPoolKernel.setArg(1, result.storageBuffer);
@@ -491,9 +383,11 @@ namespace Tensor
         cl::NDRange global_dim = cl::NDRange(inz, outr, outc);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(maxPoolKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
+
+        return result;
     }
 
-    void avgPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride, Tensor& result)
+    Tensor avgPool(Tensor& T, pair<int,int> filter_size, pair<int,int> stride)
     {
         assert(T.dim.size() == 3); 
         assert(T.dim[1] >= filter_size.first); 
@@ -509,9 +403,7 @@ namespace Tensor
         int outr = (inr - kr) / strider + 1;
         int outc = (inc - kc) / stridec + 1;
 
-        assert(result.dim[0] == inz);
-        assert(result.dim[1] == outr);
-        assert(result.dim[2] == outc);
+        Tensor result(vector <int> {inz, outr, outc}, "", -1);
 
         avgPoolKernel.setArg(0, T.storageBuffer);
         avgPoolKernel.setArg(1, result.storageBuffer);
@@ -528,20 +420,21 @@ namespace Tensor
         cl::NDRange global_dim = cl::NDRange(inz, outr, outc);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(avgPoolKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
+
+        return result;
     }
 
-    void matMult(Tensor& T, Tensor& weight, Tensor& result)
+    Tensor matMult(Tensor& T, Tensor& weight)
     {
         assert(T.dim.size() == 2);
         assert(weight.dim.size() == 2);
-        assert(result.dim.size() == 2);
         assert(T.dim[1] == weight.dim[0]);
-        assert(result.dim[0] == T.dim[0]);
-        assert(result.dim[1] == weight.dim[1]);
 
         int m = T.dim[0];
         int size = T.dim[1];
         int n = weight.dim[1];
+
+        Tensor result(vector <int> {m, n}, "", -1);
 
         // global float* image, global float* weights, global float* out, int size, int m, int n
 
@@ -555,17 +448,21 @@ namespace Tensor
         cl::NDRange global_dim = cl::NDRange(m, n);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(matMultKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
+
+        return result;
     }
 
-    void pad(Tensor& T, pair<int,int> amt, float pad_val, Tensor& result)
+    Tensor pad(Tensor& T, pair<int,int> amt, float pad_val)
     {
         assert(T.dim.size() == 3);
+        
         int iz = T.dim[0], ir = T.dim[1], ic = T.dim[2];
         int padr = amt.first, padc = amt.second;
-        assert(result.dim[0] == iz);
-        assert(result.dim[1] == ir + 2 * padr);
-        assert(result.dim[2] == ic + 2 * padc);
-        int outr = result.dim[1], outc = result.dim[2];
+        
+        int outr = ir + 2 * padr;
+        int outc = ic + 2 * padc;
+
+        Tensor result(vector <int> {iz, outr, outc}, "", -1);
 
         // global float* image, global float* out, int ir, int ic, int iz, int padr, int padc, float pad_val
 
@@ -581,13 +478,18 @@ namespace Tensor
         cl::NDRange global_dim = cl::NDRange(iz, outr, outc);
         err = (OpenCL::clqueue).enqueueNDRangeKernel(padKernel, cl::NullRange, global_dim, cl::NullRange);
         check_error();
+
+        return result;
     }
 
-    void fc(Tensor& T, Tensor& weight, Tensor& result)
+    Tensor fc(Tensor& T, Tensor& weight)
     {
+
         T.dim.push_back(1);
-        matMult(weight, T, result);
+        Tensor result = matMult(weight, T);
         T.dim.pop_back();
         result.dim.pop_back();
+
+        return result;
     }
 };
