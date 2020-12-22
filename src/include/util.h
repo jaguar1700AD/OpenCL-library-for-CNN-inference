@@ -10,6 +10,8 @@
 #include <fstream>
 #include <string>
 
+#include "include.h"
+
 #include <cstdlib>
 
 namespace util {
@@ -64,10 +66,19 @@ namespace util {
 		}
 
 	public:
+		
+		uint64_t recorded_time;
+		void record()
+		{
+			recorded_time += getTimeMilliseconds();
+		}
+
+
 		//! Constructor
 		Timer()
 		{
 			reset();
+			recorded_time = 0;
 		}
 
 		//! Destructor
