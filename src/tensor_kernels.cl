@@ -17,7 +17,7 @@ kernel void tensor_mult(global float *T1, global float* T2, global float* dest)
     dest[id] = T1[id] * T2[id];    
 }
 
-kernel void tensor_conv(global float *image, global float* filters, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, stridec)
+kernel void tensor_conv(global float *image, global float* filters, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, int stridec)
 {
     // kr, kc -> Num of rows and columns in the kernel
     // ir, ic -> Num of rows and columns in the image
@@ -53,7 +53,7 @@ kernel void tensor_relu(global float* image, global float* dest)
     else dest[id] = 0;
 }
 
-kernel void tensor_maxPool(global float *image, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, stridec)
+kernel void tensor_maxPool(global float *image, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, int stridec)
 {
     // kr, kc -> Num of rows and columns in the kernel
     // ir, ic -> Num of rows and columns in the image
@@ -78,7 +78,7 @@ kernel void tensor_maxPool(global float *image, global float* out, int ir, int i
     out[planeId*or*oc + rId*oc + cId] = max_val;
  }
 
- kernel void tensor_avgPool(global float *image, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, stridec)
+ kernel void tensor_avgPool(global float *image, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int strider, int stridec)
 {
     // kr, kc -> Num of rows and columns in the kernel
     // ir, ic -> Num of rows and columns in the image
@@ -144,4 +144,38 @@ kernel void tensor_pad(global float* image, global float* out, int ir, int ic, i
     }
 
     out[zId * or * oc + rId * oc + cId] = value;
+}
+
+kernel void tensor_begProcess(global uchar* image, global float* out, int ir, int ic, int iz, int or, int oc, global float* mean, global float* std)
+{
+    // Used for resizing and processing raw images provided by stbi library and bringing them to correct format
+    // Input contains uint8_t data
+
+    // Image -> (ir, ic, iz) -> Different from normal tensor format
+    // Output -> (iz, or, oc) -> Normal tensor format
+
+    int idr = get_global_id(0);
+    int idc = get_global_id(1);
+
+    // Positions in original image
+    float rf = (idr / (float) or) * ir;
+    float cf = (idc / (float) oc) * ic;
+
+    int rlow = floor(rf); int rhigh = rlow + 1;
+    int clow = floor(cf); int chigh = clow + 1;
+    float deltar = rf - rlow;
+    float deltac = cf - clow;
+
+    for(int channel = 0; channel < iz; channel++)
+    {
+        float ans = 0;
+        ans += image[rlow * ic * iz + clow * iz + channel] * (1-deltar) * (1 - deltac);
+        ans += image[rhigh * ic * iz + clow * iz + channel] * (deltar) * (1 - deltac);
+        ans += image[rlow * ic * iz + chigh * iz + channel] * (1-deltar) * (deltac);
+        ans += image[rhigh * ic * iz + chigh * iz + channel] * (deltar) * (deltac);
+        ans /= 255.0;
+        ans -= mean[channel];
+        ans /= std[channel];
+        out[channel * or * oc + idr * oc + idc] = ans;
+    }
 }

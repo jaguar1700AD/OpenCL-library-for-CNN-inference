@@ -24,6 +24,7 @@ namespace Tensor
     extern cl::Kernel avgPoolKernel;
     extern cl::Kernel matMultKernel;
     extern cl::Kernel padKernel;
+    extern cl::Kernel begProcessKernel;
 
     extern cl_int err;
     
@@ -35,6 +36,7 @@ namespace Tensor
         int total_size;
 
         Tensor(vector <int> dim, string str, int val);
+        Tensor (vector <int> dim, uint8_t* values); // Make a tensor from raw stb image
         void setValue(vector <float>& values);
         vector <float>* getValue(); // User needs to free mem after using it
         void clear();
@@ -62,6 +64,7 @@ namespace Tensor
     Tensor matMult(Tensor& T, Tensor& weight);
     Tensor pad(Tensor& T, pair<int,int> amt, float pad_val);
     Tensor fc(Tensor& T, Tensor& weight);
+    Tensor begProcess(Tensor& T, pair <int,int> new_size, Tensor& mean, Tensor& std);
 };
 
 #endif

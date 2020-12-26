@@ -128,32 +128,6 @@ void test_matMult()
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-vector <float>* process(uint8_t* input_image, int width, int height)
-{
-	float mean[] = {0.485, 0.456, 0.406};
-	float std[] = {0.229, 0.224, 0.225};
-
-	uint8_t* image = new uint8_t[IW * IH * ID];
-	stbir_resize_uint8(input_image, width, height, 0, image, IW, IH, 0, ID);
-
-	vector <float>* ret_image = new vector<float>;
-	for(int channel = 0; channel < ID; channel++)
-	{
-		for(int row = 0; row < IH; row++)
-		{
-			for(int col = 0; col < IW; col++)
-			{
-				float value = image[row * IW * ID + col * ID + channel] / 255.0;
-				value = (value - mean[channel]) / std[channel];
-				ret_image->push_back(value);
-			}
-		}
-	}
-	delete(image);
-
-	return ret_image;
-}
-
 vector <char*>* sorted_dir_entries(char* path)
 {
 	vector <char*>* result = new vector <char*>;
@@ -179,8 +153,13 @@ void check_accuracy()
 {
 	OpenCL::initialize_OpenCL();
 	Tensor::init();
+
+	vector <float> mean = {0.485, 0.456, 0.406};
+	vector <float> std = {0.229, 0.224, 0.225};
+	Tensor::Tensor tensor_mean(vector <int> {ID}, "", -1); tensor_mean.setValue(mean); 
+	Tensor::Tensor tensor_std(vector <int> {ID}, "", -1); tensor_std.setValue(std); 
 	
-	int num_timer = 8;
+	int num_timer = 6;
 	util::Timer timer[num_timer];
 
 	AlexNet CNN(false);
@@ -209,12 +188,13 @@ void check_accuracy()
 			char* path = concat(sub_dir_path, entry->d_name, false);
 
 			timer[1].reset();
-			uint8_t* rgb_image = stbi_load(path, &width, &height, &depth, 3);
+			uint8_t* rgb_image = stbi_load(path, &width, &height, &depth, ID);
 			(OpenCL::clqueue).finish();
 			timer[1].record();
 			
 			timer[2].reset();
-			vector <float>* image = process(rgb_image, width, height);
+			Tensor::Tensor X(vector <int> {height, width, ID}, rgb_image);
+			X = Tensor::begProcess(X, make_pair(IH, IW), tensor_mean, tensor_std);
 			(OpenCL::clqueue).finish();
 			timer[2].record();
 
@@ -224,30 +204,19 @@ void check_accuracy()
 			timer[3].record();
 			
 			timer[4].reset();
-			Tensor::Tensor X(vector <int> {ID, IH, IW}, "", -1);
-			X.setValue(*image);
+			X = CNN.forward(X);
 			(OpenCL::clqueue).finish();
 			timer[4].record();
 			
 			timer[5].reset();
-			X = CNN.forward(X);
-			(OpenCL::clqueue).finish();
-			timer[5].record();
-			
-			timer[6].reset();
 			int predn = X.max_ind();
 			(OpenCL::clqueue).finish();
-			timer[6].record();
+			timer[5].record();
 
 			if (predn == category) correct++;
 			tot_image++;
 
 			cout << "\r" << correct << " / " << tot_image << " ( " << (correct * 100.0 / tot_image) << "% ) " << flush;
-
-			timer[7].reset();
-			delete(image);
-			(OpenCL::clqueue).finish();
-			timer[7].record();
 
 
 			delete(path);

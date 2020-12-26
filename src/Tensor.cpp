@@ -13,6 +13,7 @@ namespace Tensor
     cl::Kernel avgPoolKernel;
     cl::Kernel matMultKernel;
     cl::Kernel padKernel;
+    cl::Kernel begProcessKernel;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -35,6 +36,15 @@ namespace Tensor
             setValue(data);
         }
         
+    }
+    Tensor::Tensor(vector <int> dim, uint8_t* values) // Make a tensor from raw stb image
+    {
+        this->dim = dim;
+        total_size = 1;
+        for(int i = 0; i < dim.size(); i++) total_size *= dim[i];
+        storageBuffer = cl::Buffer(OpenCL::clcontext, CL_MEM_READ_WRITE, sizeof(uint8_t)*total_size);
+        err = (OpenCL::clqueue).enqueueWriteBuffer(storageBuffer, CL_TRUE, 0, sizeof(uint8_t)*total_size, values);
+        check_error();
     }
 
     void Tensor::setValue(vector <float>& values)
@@ -153,6 +163,7 @@ namespace Tensor
         avgPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_avgPool", &err); check_error();
         matMultKernel = cl::Kernel(OpenCL::clprogram, "tensor_matMult", &err); check_error();
         padKernel = cl::Kernel(OpenCL::clprogram, "tensor_pad", &err); check_error();
+        begProcessKernel = cl::Kernel(OpenCL::clprogram, "tensor_begProcess", &err); check_error();
     }
 
     void check_error()
@@ -489,6 +500,39 @@ namespace Tensor
         Tensor result = matMult(weight, T);
         T.dim.pop_back();
         result.dim.pop_back();
+
+        return result;
+    }
+
+    Tensor begProcess(Tensor& T, pair <int,int> new_size, Tensor& mean, Tensor& std)
+    {
+        // Used for resizing and processing raw images provided by stbi library and bringing them to correct format
+        // Input contains uint8_t data
+
+        assert(T.dim.size() == 3); 
+
+        int ir = T.dim[0], ic = T.dim[1], iz = T.dim[2]; // Different from normal tensor format in which channels come first
+        int outr = new_size.first, outc = new_size.second;
+
+        assert(mean.dim.size() == 1); assert(mean.total_size == iz);
+        assert(std.dim.size() == 1); assert(std.total_size == iz);
+
+        Tensor result(vector <int> {iz, outr, outc}, "", -1); // Normal tensor format
+
+        // global uint8_t* image, global float* out, int ir, int ic, int iz, int or, int oc, float* mean, float* std
+
+        begProcessKernel.setArg(0, T.storageBuffer);
+        begProcessKernel.setArg(1, result.storageBuffer);
+        begProcessKernel.setArg(2, ir);
+        begProcessKernel.setArg(3, ic);
+        begProcessKernel.setArg(4, iz);
+        begProcessKernel.setArg(5, outr);
+        begProcessKernel.setArg(6, outc);
+        begProcessKernel.setArg(7, mean.storageBuffer);
+        begProcessKernel.setArg(8, std.storageBuffer);
+
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(begProcessKernel, cl::NullRange, cl::NDRange(outr, outc), cl::NullRange);
+        check_error();
 
         return result;
     }
