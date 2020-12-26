@@ -10,6 +10,7 @@
 
 #include "CL/cl.hpp"
 #include "OpenCL.h"
+#include "util.h"
 
 #include <iostream>
 #include <vector>

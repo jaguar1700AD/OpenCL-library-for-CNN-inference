@@ -1,6 +1,4 @@
 #pragma once
-#include "include.h"
-#include "util.h"
 
 class OpenCL {
 

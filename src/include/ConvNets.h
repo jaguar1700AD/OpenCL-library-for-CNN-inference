@@ -117,6 +117,7 @@ class AlexNet : public ConvNet
 public:
     AlexNet(bool setValues);
     Tensor::Tensor forward(Tensor::Tensor input);
+    Tensor::Tensor timed_forward(Tensor::Tensor input, vector <util::Timer>& timer);
 };
 
 AlexNet::AlexNet(bool setValues)
@@ -189,6 +190,109 @@ Tensor::Tensor AlexNet::forward(Tensor::Tensor input)
 
     return input;
 }
+
+Tensor::Tensor AlexNet::timed_forward(Tensor::Tensor input, vector <util::Timer>& timer)
+{
+    assert(input.dim.size() == 3);
+    assert(input.dim[0] == 3);
+    assert(input.dim[1] == 224);
+    assert(input.dim[2] == 224);
+
+    int id = 0;
+
+    timer[id].reset();
+    input = Tensor::conv(input, filter[0], filter_bias[0], make_pair(4, 4));
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::pad(input, make_pair(2, 2), 0);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::relu(input);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::maxPool(input, make_pair(3,3), make_pair(2,2));
+    timer[id++].record();
+
+    timer[id].reset();
+    input = Tensor::conv(input, filter[1], filter_bias[1], make_pair(1, 1));
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::pad(input, make_pair(2, 2), 0);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::relu(input);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::maxPool(input, make_pair(3,3), make_pair(2,2));
+    timer[id++].record();
+
+    timer[id].reset();
+    input = Tensor::conv(input, filter[2], filter_bias[2], make_pair(1, 1));
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::pad(input, make_pair(1, 1), 0);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::relu(input);
+    timer[id++].record();
+    
+    timer[id].reset();
+    input = Tensor::conv(input, filter[3], filter_bias[3], make_pair(1, 1));
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::pad(input, make_pair(1, 1), 0);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::relu(input);
+    timer[id++].record();
+    
+    timer[id].reset();
+    input = Tensor::conv(input, filter[4], filter_bias[4], make_pair(1, 1));
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::pad(input, make_pair(1, 1), 0);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::relu(input);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::maxPool(input, make_pair(3,3), make_pair(2,2));
+    timer[id++].record();
+
+    timer[id].reset();
+    input.reshape(vector <int> {9216});
+    timer[id++].record();
+    
+    timer[id].reset();
+    input = Tensor::fc(input, weight[0]); 
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::add(input, weight_bias[0]);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::relu(input);
+    timer[id++].record();
+
+    timer[id].reset();
+    input = Tensor::fc(input, weight[1]); 
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::add(input, weight_bias[1]);
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::relu(input);
+    timer[id++].record();
+
+    timer[id].reset();
+    input = Tensor::fc(input, weight[2]); 
+    timer[id++].record();
+    timer[id].reset();
+    input = Tensor::add(input, weight_bias[2]);
+    timer[id++].record();
+
+    return input;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 

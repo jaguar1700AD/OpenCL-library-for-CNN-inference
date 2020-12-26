@@ -70,7 +70,8 @@ namespace util {
 		uint64_t recorded_time;
 		void record()
 		{
-			recorded_time += getTimeMilliseconds();
+			OpenCL::clqueue.finish();
+			recorded_time += getTime(1000ULL * 1000ULL) / 1000;
 		}
 
 
@@ -92,6 +93,7 @@ namespace util {
 		*/
 		void reset()
 		{
+			OpenCL::clqueue.finish();
 			::clock_gettime(CLOCK_MONOTONIC, &startTime_);
 		}
 

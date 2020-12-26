@@ -1,5 +1,6 @@
 #define __CL_ENABLE_EXCEPTIONS
 
+#include "include/include.h"
 #include "include/OpenCL.h"
 #include "include/util.h"
 #include "include/Tensor.h"
@@ -159,8 +160,9 @@ void check_accuracy()
 	Tensor::Tensor tensor_mean(vector <int> {ID}, "", -1); tensor_mean.setValue(mean); 
 	Tensor::Tensor tensor_std(vector <int> {ID}, "", -1); tensor_std.setValue(std); 
 	
-	int num_timer = 6;
+	int num_timer = 3;
 	util::Timer timer[num_timer];
+	vector <util::Timer> CNN_timer(27, util::Timer());
 
 	AlexNet CNN(false);
 	CNN.readData("Alexnet");
@@ -189,39 +191,28 @@ void check_accuracy()
 
 			timer[1].reset();
 			uint8_t* rgb_image = stbi_load(path, &width, &height, &depth, ID);
-			(OpenCL::clqueue).finish();
 			timer[1].record();
 			
-			timer[2].reset();
 			Tensor::Tensor X(vector <int> {height, width, ID}, rgb_image);
 			X = Tensor::begProcess(X, make_pair(IH, IW), tensor_mean, tensor_std);
-			(OpenCL::clqueue).finish();
-			timer[2].record();
 
-			timer[3].reset();
 			stbi_image_free(rgb_image);
-			(OpenCL::clqueue).finish();
-			timer[3].record();
 			
-			timer[4].reset();
-			X = CNN.forward(X);
-			(OpenCL::clqueue).finish();
-			timer[4].record();
+			timer[2].reset();
+			X = CNN.timed_forward(X, CNN_timer);
+			timer[2].record();
 			
-			timer[5].reset();
 			int predn = X.max_ind();
-			(OpenCL::clqueue).finish();
-			timer[5].record();
+			//int predn = 0;
 
 			if (predn == category) correct++;
 			tot_image++;
+			if (tot_image > 10000) break;
 
 			cout << "\r" << correct << " / " << tot_image << " ( " << (correct * 100.0 / tot_image) << "% ) " << flush;
 
-
 			delete(path);
 
-			(OpenCL::clqueue).finish();
 			timer[0].record();
 		}
 
@@ -229,7 +220,7 @@ void check_accuracy()
 		closedir(sub_dp);
 		category++;
 
-		if (tot_image > 1000) break;
+		if (tot_image > 10000) break;
 	}
 
 	sub_dirs->clear();
@@ -244,6 +235,10 @@ void check_accuracy()
 		tot_expected_time += timer[i].recorded_time;
 	}
 	cout << "Total expected time: " << tot_expected_time << endl;
+	for(int i = 0; i < CNN_timer.size(); i++) 
+	{
+		cout << i << " " << CNN_timer[i].recorded_time << endl;
+	}
 }
 
 int main(void)
