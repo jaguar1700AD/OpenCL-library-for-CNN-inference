@@ -32,7 +32,6 @@ void OpenCL::initialize_OpenCL() {
 	
 	cl::Device default_device = all_devices[0];
 	std::cout << "Using device: " << default_device.getInfo<CL_DEVICE_NAME>() << "\n";
-	/*////////////////////////////////////////////////////
 	std::cout << "\t-------------------------" << std::endl;
 
 	std::string s;
@@ -67,7 +66,6 @@ void OpenCL::initialize_OpenCL() {
 	std::cout << "\x08)" << std::endl;
 
 	std::cout << "\t-------------------------" << std::endl;
-	////////////////////////////////////////////////////////////*/
 
 	// a context is like a "runtime link" to the device and platform;
 	// i.e. communication is possible

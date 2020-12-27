@@ -8,6 +8,7 @@ namespace Tensor
     cl::Kernel subKernel;
     cl::Kernel multKernel;
     cl::Kernel convKernel;
+    cl::Kernel convOptimKernel;
     cl::Kernel reluKernel;
     cl::Kernel maxPoolKernel;
     cl::Kernel avgPoolKernel;
@@ -158,6 +159,7 @@ namespace Tensor
         subKernel = cl::Kernel(OpenCL::clprogram, "tensor_sub", &err); check_error();
         multKernel = cl::Kernel(OpenCL::clprogram, "tensor_mult", &err); check_error();
         convKernel = cl::Kernel(OpenCL::clprogram, "tensor_conv", &err); check_error();
+        convOptimKernel = cl::Kernel(OpenCL::clprogram, "tensor_conv_optim", &err); check_error();
         reluKernel = cl::Kernel(OpenCL::clprogram, "tensor_relu", &err); check_error();
         maxPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_maxPool", &err); check_error();
         avgPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_avgPool", &err); check_error();
@@ -327,22 +329,44 @@ namespace Tensor
 
         Tensor result(vector <int> {num_filters, outr, outc}, "", -1);
 
-        convKernel.setArg(0, T.storageBuffer);
-        convKernel.setArg(1, filter.storageBuffer);
-        convKernel.setArg(2, bias.storageBuffer);
-        convKernel.setArg(3, result.storageBuffer);
-        convKernel.setArg(4, inr);
-        convKernel.setArg(5, inc);
-        convKernel.setArg(6, inz);
-        convKernel.setArg(7, kr);
-        convKernel.setArg(8, kc);
-        convKernel.setArg(9, outr);
-        convKernel.setArg(10, outc);
-        convKernel.setArg(11, strider);
-        convKernel.setArg(12, stridec);
+        // convKernel.setArg(0, T.storageBuffer);
+        // convKernel.setArg(1, filter.storageBuffer);
+        // convKernel.setArg(2, bias.storageBuffer);
+        // convKernel.setArg(3, result.storageBuffer);
+        // convKernel.setArg(4, inr);
+        // convKernel.setArg(5, inc);
+        // convKernel.setArg(6, inz);
+        // convKernel.setArg(7, kr);
+        // convKernel.setArg(8, kc);
+        // convKernel.setArg(9, outr);
+        // convKernel.setArg(10, outc);
+        // convKernel.setArg(11, strider);
+        // convKernel.setArg(12, stridec);
 
-        cl::NDRange global_dim = cl::NDRange(num_filters, outr, outc);
-        err = (OpenCL::clqueue).enqueueNDRangeKernel(convKernel, cl::NullRange, global_dim, cl::NullRange);
+        // cl::NDRange global_dim = cl::NDRange(num_filters, outr, outc);
+        // err = (OpenCL::clqueue).enqueueNDRangeKernel(convKernel, cl::NullRange, global_dim, cl::NullRange);
+        // check_error();
+
+        convOptimKernel.setArg(0, T.storageBuffer);
+        convOptimKernel.setArg(1, filter.storageBuffer);
+        convOptimKernel.setArg(2, sizeof(float) * inz * kr * kc, nullptr);
+        convOptimKernel.setArg(3, bias.storageBuffer);
+        convOptimKernel.setArg(4, result.storageBuffer);
+        convOptimKernel.setArg(5, inr);
+        convOptimKernel.setArg(6, inc);
+        convOptimKernel.setArg(7, inz);
+        convOptimKernel.setArg(8, kr);
+        convOptimKernel.setArg(9, kc);
+        convOptimKernel.setArg(10, outr);
+        convOptimKernel.setArg(11, outc);
+        convOptimKernel.setArg(12, num_filters);
+        convOptimKernel.setArg(13, strider);
+        convOptimKernel.setArg(14, stridec);
+        
+        int global0 = max(inz, num_filters);
+        cl::NDRange global_dim = cl::NDRange(global0, outr, outc);
+        cl::NDRange local_dim = cl::NDRange(global0, 1, 1);
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(convOptimKernel, cl::NullRange, global_dim, local_dim);
         check_error();
 
         return result;

@@ -93,7 +93,6 @@ namespace util {
 		*/
 		void reset()
 		{
-			OpenCL::clqueue.finish();
 			::clock_gettime(CLOCK_MONOTONIC, &startTime_);
 		}
 

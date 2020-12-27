@@ -46,6 +46,59 @@ kernel void tensor_conv(global float *image, global float* filters, global float
     out[filtId*or*oc + rId*oc + cId] = sum;
  }
 
+ kernel void tensor_conv_optim(global float *image, const global float* filters, local float* image_local, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int oz, int strider, int stridec)
+{
+    // kr, kc -> Num of rows and columns in the kernel
+    // ir, ic -> Num of rows and columns in the image
+    // iz -> Num of planes in the image = Num of planes in the kernel
+    // or, oc -> Num of rows and columns in the output
+    // oz -> Number of filters = Depth of output
+    
+    // Local dim is (max(num_filters, image_depth), 1, 1)
+    // Global dim is (max(num_filters, image_depth), or, oc)
+
+    const int filtId = get_global_id(0); // filter id 
+    const int rId = get_global_id(1); // row id
+    const int cId = get_global_id(2); // column id
+    const int localId = filtId; 
+
+    // All filters that convolve in the same position are executed as part of a work group
+
+    // Copy data to local memory
+    if (localId < iz)
+    {
+        for(int r = 0; r < kr; r++)
+        {
+            for(int c = 0; c < kc; c++)
+            {
+                int r_image = r + strider * rId;
+                int c_image = c + stridec * cId;
+                image_local[localId*kr*kc + r * kc + c] = image[localId*ir*ic + r_image*ic + c_image];
+            }
+        }
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    if (filtId < oz)
+    {
+        float sum = 0;
+        for (int z = 0; z < iz; z++)
+        {
+            for (int r = 0; r < kr; r++)
+            {
+                for (int c = 0; c < kc; c++)
+                {
+                    //sum += filters[filtId*iz*kr*kc + z*kr*kc + r*kc + c] * image_local[z*kr*kc + r * kc + c];  
+                    sum += image_local[z*kr*kc + r * kc + c] * image_local[z*kr*kc + r * kc + c];
+                }
+            }
+        }
+        sum += bias[filtId];
+        out[filtId*or*oc + rId*oc + cId] = sum;
+    }
+
+ }
+
 kernel void tensor_relu(global float* image, global float* dest)
 {
     const int id = get_global_id(0);
