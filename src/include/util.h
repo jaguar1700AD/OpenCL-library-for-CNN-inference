@@ -10,8 +10,10 @@
 #include <fstream>
 #include <string>
 #include <cstdlib>
+#include <bits/stdc++.h>
 
-#include "include.h"
+#include "Tensor.h"
+#include "OpenCL.h" 
 
 using namespace std;
 
@@ -71,7 +73,7 @@ namespace util {
 		uint64_t recorded_time;
 		void record()
 		{
-			OpenCL::clqueue.finish();
+			Tensor::err = OpenCL::clqueue.finish(); Tensor::check_error();
 			recorded_time += getTime(1000ULL * 1000ULL) / 1000;
 		}
 

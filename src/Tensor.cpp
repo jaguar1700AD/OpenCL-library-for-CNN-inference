@@ -346,31 +346,34 @@ namespace Tensor
         // cl::NDRange global_dim = cl::NDRange(num_filters, outr, outc);
         // err = (OpenCL::clqueue).enqueueNDRangeKernel(convKernel, cl::NullRange, global_dim, cl::NullRange);
         // check_error();
-        
-        int localRow = 1; // Number of consecutive output row positions to be computed in one work group using local memory
-        int localCol = 1; // Number of consecutive output col positions to be computed in one work group using local memory
-        int local_image_mem_size = inz * (kr + strider * (localRow - 1)) * (kc + stridec * (localCol - 1));
-        int local_filter_mem_size = inz * kr * kc;
 
-        // OpenCL::clqueue.finish();
-        // cout << inz << " " << inr << " " << inc << " Filter: " << kr << " " << kc << " " << strider << " " << stridec << endl;
+        int depth_per_iter = 64;
+        int eff_depth = min(depth_per_iter, inz);
+
+        int localRow = 8; // Number of consecutive output row positions to be computed in one work group using local memory
+        int localCol = 8; // Number of consecutive output col positions to be computed in one work group using local memory
+        int local_image_mem_size = eff_depth * (kr + strider * (localRow - 1)) * (kc + stridec * (localCol - 1));
+        int local_filter_mem_size = eff_depth * kr * kc;
+
+        // global float *image, int depth_per_iter, global float* filters, local float* image_local, local float* filter_local, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int oz, int strider, int stridec
 
         convOptimKernel.setArg(0, T.storageBuffer);
-        convOptimKernel.setArg(1, filter.storageBuffer);
-        convOptimKernel.setArg(2, sizeof(float) * local_image_mem_size, nullptr);
-        convOptimKernel.setArg(3, sizeof(float) * local_filter_mem_size, nullptr);
-        convOptimKernel.setArg(4, bias.storageBuffer);
-        convOptimKernel.setArg(5, result.storageBuffer);
-        convOptimKernel.setArg(6, inr);
-        convOptimKernel.setArg(7, inc);
-        convOptimKernel.setArg(8, inz);
-        convOptimKernel.setArg(9, kr);
-        convOptimKernel.setArg(10, kc);
-        convOptimKernel.setArg(11, outr);
-        convOptimKernel.setArg(12, outc);
-        convOptimKernel.setArg(13, num_filters);
-        convOptimKernel.setArg(14, strider);
-        convOptimKernel.setArg(15, stridec);
+        convOptimKernel.setArg(1, depth_per_iter);
+        convOptimKernel.setArg(2, filter.storageBuffer);
+        convOptimKernel.setArg(3, sizeof(float) * local_image_mem_size, nullptr);
+        convOptimKernel.setArg(4, sizeof(float) * local_filter_mem_size, nullptr);
+        convOptimKernel.setArg(5, bias.storageBuffer);
+        convOptimKernel.setArg(6, result.storageBuffer);
+        convOptimKernel.setArg(7, inr);
+        convOptimKernel.setArg(8, inc);
+        convOptimKernel.setArg(9, inz);
+        convOptimKernel.setArg(10, kr);
+        convOptimKernel.setArg(11, kc);
+        convOptimKernel.setArg(12, outr);
+        convOptimKernel.setArg(13, outc);
+        convOptimKernel.setArg(14, num_filters);
+        convOptimKernel.setArg(15, strider);
+        convOptimKernel.setArg(16, stridec);
         
         int globalRow = localRow * ceil(outr / (float) localRow);
         int globalCol = localCol * ceil(outc / (float) localCol);
