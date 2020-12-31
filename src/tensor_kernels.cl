@@ -1,3 +1,8 @@
+int myMin(int a, int b, int c)
+{
+    return min(a, min(b, c));
+}
+
 kernel void tensor_sub(global float *T1, global float* T2, global float* dest)
 {
     const int id = get_global_id(0);
@@ -46,40 +51,73 @@ kernel void tensor_conv(global float *image, global float* filters, global float
     out[filtId*or*oc + rId*oc + cId] = sum;
  }
 
- kernel void tensor_conv_optim(global float *image, const global float* filters, local float* image_local, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int oz, int strider, int stridec)
+ kernel void tensor_conv_optim(global float *image, global float* filters, local float* image_local, local float* filter_local, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int oz, int strider, int stridec)
 {
+    // Assume -> strider <= kr, stridec <= kc
+    // Consecutive filter and image positions processed by a single work group
+    // Uncoalesced memory access
+
     // kr, kc -> Num of rows and columns in the kernel
     // ir, ic -> Num of rows and columns in the image
     // iz -> Num of planes in the image = Num of planes in the kernel
     // or, oc -> Num of rows and columns in the output
     // oz -> Number of filters = Depth of output
-    
-    // Local dim is (max(num_filters, image_depth), 1, 1)
-    // Global dim is (max(num_filters, image_depth), or, oc)
 
     const int filtId = get_global_id(0); // filter id 
     const int rId = get_global_id(1); // row id
     const int cId = get_global_id(2); // column id
-    const int localId = filtId; 
+    // get_local_id(0) = 1
+    const int localrId = get_local_id(1);
+    const int localcId = get_local_id(2);
+    const int numRowThreads = get_local_size(1); // Num consecutive filters for a work group in row dirn
+    const int numColThreads = get_local_size(2); // Num consecutive filters for a work group in col dirn
+    const int workrId = get_group_id(1);
+    const int workcId = get_group_id(2);
 
-    // All filters that convolve in the same position are executed as part of a work group
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Copy data to local memory
-    if (localId < iz)
+    // Image data and filter data for neighbouring positions is stored in local memory
+
+    // Copy image to local memory
+
+    const int r_image_beg = workrId * numRowThreads * strider;
+    const int c_image_beg = workcId * numColThreads * stridec;
+    const int rlim = kr + strider * (numRowThreads - 1);
+    const int clim = kc + stridec * (numColThreads - 1);
+    const int rowCopySize =  rlim / numRowThreads + 1;
+    const int colCopySize =  clim / numColThreads + 1;
+    const int rbeg = localrId * rowCopySize;
+    const int cbeg = localcId * colCopySize;
+
+    for(int z = 0; z < iz; z++)
     {
-        for(int r = 0; r < kr; r++)
+        for(int r = rbeg; r < myMin(rbeg + rowCopySize, rlim, ir - r_image_beg); r++)
         {
-            for(int c = 0; c < kc; c++)
+            for(int c = cbeg; c < myMin(cbeg + colCopySize, clim, ic - c_image_beg); c++)
             {
-                int r_image = r + strider * rId;
-                int c_image = c + stridec * cId;
-                image_local[localId*kr*kc + r * kc + c] = image[localId*ir*ic + r_image*ic + c_image];
+                int r_image = r_image_beg + r;
+                int c_image = c_image_beg + c;
+                image_local[z*rlim*clim + r * clim + c] = image[z*ir*ic + r_image*ic + c_image];
             }
         }
     }
+
+    // Copy filter to local memory
+
+    const int filtlim = iz * kr * kc;
+    const int numThreads = numRowThreads * numColThreads;
+    const int copySize = filtlim / numThreads + 1;
+    const int beg = (localrId * numColThreads + localcId) * copySize;
+    for(int id = beg; id < min(beg + copySize, filtlim); id++)
+    {
+        filter_local[id] = filters[filtId * filtlim + id];
+    }
+
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    if (filtId < oz)
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    if (rId < or && cId < oc)
     {
         float sum = 0;
         for (int z = 0; z < iz; z++)
@@ -88,8 +126,9 @@ kernel void tensor_conv(global float *image, global float* filters, global float
             {
                 for (int c = 0; c < kc; c++)
                 {
-                    //sum += filters[filtId*iz*kr*kc + z*kr*kc + r*kc + c] * image_local[z*kr*kc + r * kc + c];  
-                    sum += image_local[z*kr*kc + r * kc + c] * image_local[z*kr*kc + r * kc + c];
+                    const int r_image = r + strider * localrId;
+                    const int c_image = c + stridec * localcId;
+                    sum += image_local[z*rlim*clim + r_image * clim + c_image] * filter_local[z*kr*kc + r * kc + c];
                 }
             }
         }

@@ -9,10 +9,11 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstdlib>
 
 #include "include.h"
 
-#include <cstdlib>
+using namespace std;
 
 namespace util {
 
@@ -66,7 +67,7 @@ namespace util {
 		}
 
 	public:
-		
+
 		uint64_t recorded_time;
 		void record()
 		{
