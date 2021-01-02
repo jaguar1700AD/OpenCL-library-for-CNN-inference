@@ -203,7 +203,7 @@ void check_accuracy()
 			timer[2].record();
 			
 			int predn = X.max_ind();
-			int predn = 0;
+			//int predn = 0;
 
 			if (predn == category) correct++;
 			tot_image++;
