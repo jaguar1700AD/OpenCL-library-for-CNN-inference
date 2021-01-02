@@ -71,10 +71,17 @@ namespace util {
 	public:
 
 		uint64_t recorded_time;
+		uint64_t div = 1000 * 1000;
+
+		void print(string str)
+		{
+			cout << str << " : " << recorded_time / div << endl;
+		}
+
 		void record()
 		{
 			Tensor::err = OpenCL::clqueue.finish(); Tensor::check_error();
-			recorded_time += getTime(1000ULL * 1000ULL) / 1000;
+			recorded_time += getTime(1000ULL * 1000ULL * 1000ULL);
 		}
 
 

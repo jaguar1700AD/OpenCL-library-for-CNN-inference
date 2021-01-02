@@ -138,7 +138,6 @@ kernel void tensor_conv(global float *image, global float* filters, global float
                     }
                 }
             }
-            //sum += bias[filtId];
             if (iz_beg == 0) out[filtId*or*oc + rId*oc + cId] = sum;
             else out[filtId*or*oc + rId*oc + cId] += sum;
         }

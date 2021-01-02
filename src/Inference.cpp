@@ -166,7 +166,7 @@ void check_accuracy()
 
 	AlexNet CNN(false);
 	CNN.readData("Alexnet");
-	// CNN.printModel();
+	//CNN.printModel();
 
 	char base[] = "./src/data/Datasets/Imagenet/train/";
 	vector <char*>* sub_dirs = sorted_dir_entries(base);
@@ -203,11 +203,11 @@ void check_accuracy()
 			timer[2].record();
 			
 			int predn = X.max_ind();
-			//int predn = 0;
+			int predn = 0;
 
 			if (predn == category) correct++;
 			tot_image++;
-			if (tot_image > 10000) break;
+			if (tot_image > 1000) break;
 
 			cout << "\r" << correct << " / " << tot_image << " ( " << (correct * 100.0 / tot_image) << "% ) " << flush;
 
@@ -220,25 +220,29 @@ void check_accuracy()
 		closedir(sub_dp);
 		category++;
 
-		if (tot_image > 10000) break;
+		if (tot_image > 1000) break;
 	}
 
 	sub_dirs->clear();
 	delete(sub_dirs);
 
-	uint64_t tot_expected_time = 0;
+	util::Timer tot_expected_time;
+	util::Timer tot_CNN_time;
+
 	cout << endl;
-	cout << "Total time: " << timer[0].recorded_time << endl;
+	timer[0].print("Total time");
 	for(int i = 1; i < num_timer; i++) 
 	{
-		cout << timer[i].recorded_time << endl;
-		tot_expected_time += timer[i].recorded_time;
+		timer[i].print("");
+		tot_expected_time.recorded_time += timer[i].recorded_time;
 	}
-	cout << "Total expected time: " << tot_expected_time << endl;
+	tot_expected_time.print("Total expected time");
 	for(int i = 0; i < CNN_timer.size(); i++) 
 	{
-		cout << i << " " << CNN_timer[i].recorded_time << endl;
+		CNN_timer[i].print(to_string(i));
+		tot_CNN_time.recorded_time += CNN_timer[i].recorded_time;
 	}
+	tot_CNN_time.print("Total CNN expected time");
 }
 
 int main(void)

@@ -347,7 +347,7 @@ namespace Tensor
         // err = (OpenCL::clqueue).enqueueNDRangeKernel(convKernel, cl::NullRange, global_dim, cl::NullRange);
         // check_error();
 
-        int depth_per_iter = 64;
+        int depth_per_iter = 2;
         int eff_depth = min(depth_per_iter, inz);
 
         int localRow = 8; // Number of consecutive output row positions to be computed in one work group using local memory
