@@ -63,21 +63,21 @@ kernel void tensor_conv(global float *image, global float* filters, global float
     // or, oc -> Num of rows and columns in the output
     // oz -> Number of filters = Depth of output
 
+    const int filtId = get_global_id(0); // filter id 
+    const int rId = get_global_id(1); // row id
+    const int cId = get_global_id(2); // column id
+    // get_local_id(0) = 1
+    const int localrId = get_local_id(1);
+    const int localcId = get_local_id(2);
+    const int numRowThreads = get_local_size(1); // Num consecutive filters for a work group in row dirn
+    const int numColThreads = get_local_size(2); // Num consecutive filters for a work group in col dirn
+    const int workrId = get_group_id(1);
+    const int workcId = get_group_id(2);
+
     for(int iz_beg = 0; iz_beg < iz; iz_beg += depth_per_iter)
     {
         int iz_end = min(iz_beg + depth_per_iter, iz);
         int iz_len = iz_end - iz_beg;
-
-        const int filtId = get_global_id(0); // filter id 
-        const int rId = get_global_id(1); // row id
-        const int cId = get_global_id(2); // column id
-        // get_local_id(0) = 1
-        const int localrId = get_local_id(1);
-        const int localcId = get_local_id(2);
-        const int numRowThreads = get_local_size(1); // Num consecutive filters for a work group in row dirn
-        const int numColThreads = get_local_size(2); // Num consecutive filters for a work group in col dirn
-        const int workrId = get_group_id(1);
-        const int workcId = get_group_id(2);
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -138,13 +138,15 @@ kernel void tensor_conv(global float *image, global float* filters, global float
                     }
                 }
             }
-            sum += bias[filtId];
+            //sum += bias[filtId];
             if (iz_beg == 0) out[filtId*or*oc + rId*oc + cId] = sum;
             else out[filtId*or*oc + rId*oc + cId] += sum;
         }
 
         barrier(CLK_LOCAL_MEM_FENCE);
     }
+
+    if (rId < or && cId < oc) out[filtId*or*oc + rId*oc + cId] += bias[filtId];
 
  }
 
