@@ -8,7 +8,8 @@ namespace Tensor
     cl::Kernel subKernel;
     cl::Kernel multKernel;
     cl::Kernel convKernel;
-    cl::Kernel convOptimKernel;
+    cl::Kernel convOptim1Kernel;
+    cl::Kernel convOptim2Kernel;
     cl::Kernel reluKernel;
     cl::Kernel maxPoolKernel;
     cl::Kernel avgPoolKernel;
@@ -159,7 +160,8 @@ namespace Tensor
         subKernel = cl::Kernel(OpenCL::clprogram, "tensor_sub", &err); check_error();
         multKernel = cl::Kernel(OpenCL::clprogram, "tensor_mult", &err); check_error();
         convKernel = cl::Kernel(OpenCL::clprogram, "tensor_conv", &err); check_error();
-        convOptimKernel = cl::Kernel(OpenCL::clprogram, "tensor_conv_optim", &err); check_error();
+        convOptim1Kernel = cl::Kernel(OpenCL::clprogram, "tensor_conv_optim1", &err); check_error();
+        convOptim2Kernel = cl::Kernel(OpenCL::clprogram, "tensor_conv_optim2", &err); check_error();
         reluKernel = cl::Kernel(OpenCL::clprogram, "tensor_relu", &err); check_error();
         maxPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_maxPool", &err); check_error();
         avgPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_avgPool", &err); check_error();
@@ -329,25 +331,7 @@ namespace Tensor
 
         Tensor result(vector <int> {num_filters, outr, outc}, "", -1);
 
-        // convKernel.setArg(0, T.storageBuffer);
-        // convKernel.setArg(1, filter.storageBuffer);
-        // convKernel.setArg(2, bias.storageBuffer);
-        // convKernel.setArg(3, result.storageBuffer);
-        // convKernel.setArg(4, inr);
-        // convKernel.setArg(5, inc);
-        // convKernel.setArg(6, inz);
-        // convKernel.setArg(7, kr);
-        // convKernel.setArg(8, kc);
-        // convKernel.setArg(9, outr);
-        // convKernel.setArg(10, outc);
-        // convKernel.setArg(11, strider);
-        // convKernel.setArg(12, stridec);
-
-        // cl::NDRange global_dim = cl::NDRange(num_filters, outr, outc);
-        // err = (OpenCL::clqueue).enqueueNDRangeKernel(convKernel, cl::NullRange, global_dim, cl::NullRange);
-        // check_error();
-
-        int depth_per_iter = 2;
+        int depth_per_iter = 8;
         int eff_depth = min(depth_per_iter, inz);
 
         int localRow = 8; // Number of consecutive output row positions to be computed in one work group using local memory
@@ -357,29 +341,31 @@ namespace Tensor
 
         // global float *image, int depth_per_iter, global float* filters, local float* image_local, local float* filter_local, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int oz, int strider, int stridec
 
-        convOptimKernel.setArg(0, T.storageBuffer);
-        convOptimKernel.setArg(1, depth_per_iter);
-        convOptimKernel.setArg(2, filter.storageBuffer);
-        convOptimKernel.setArg(3, sizeof(float) * local_image_mem_size, nullptr);
-        convOptimKernel.setArg(4, sizeof(float) * local_filter_mem_size, nullptr);
-        convOptimKernel.setArg(5, bias.storageBuffer);
-        convOptimKernel.setArg(6, result.storageBuffer);
-        convOptimKernel.setArg(7, inr);
-        convOptimKernel.setArg(8, inc);
-        convOptimKernel.setArg(9, inz);
-        convOptimKernel.setArg(10, kr);
-        convOptimKernel.setArg(11, kc);
-        convOptimKernel.setArg(12, outr);
-        convOptimKernel.setArg(13, outc);
-        convOptimKernel.setArg(14, num_filters);
-        convOptimKernel.setArg(15, strider);
-        convOptimKernel.setArg(16, stridec);
+        cl::Kernel myKernel = convOptim2Kernel;
+
+        myKernel.setArg(0, T.storageBuffer);
+        myKernel.setArg(1, depth_per_iter);
+        myKernel.setArg(2, filter.storageBuffer);
+        myKernel.setArg(3, sizeof(float) * local_image_mem_size, nullptr);
+        myKernel.setArg(4, sizeof(float) * local_filter_mem_size, nullptr);
+        myKernel.setArg(5, bias.storageBuffer);
+        myKernel.setArg(6, result.storageBuffer);
+        myKernel.setArg(7, inr);
+        myKernel.setArg(8, inc);
+        myKernel.setArg(9, inz);
+        myKernel.setArg(10, kr);
+        myKernel.setArg(11, kc);
+        myKernel.setArg(12, outr);
+        myKernel.setArg(13, outc);
+        myKernel.setArg(14, num_filters);
+        myKernel.setArg(15, strider);
+        myKernel.setArg(16, stridec);
         
         int globalRow = localRow * ceil(outr / (float) localRow);
         int globalCol = localCol * ceil(outc / (float) localCol);
         cl::NDRange global_dim = cl::NDRange(num_filters, globalRow, globalCol);
         cl::NDRange local_dim = cl::NDRange(1, localRow, localCol);
-        err = (OpenCL::clqueue).enqueueNDRangeKernel(convOptimKernel, cl::NullRange, global_dim, local_dim);
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(myKernel, cl::NullRange, global_dim, local_dim);
         check_error();
 
         // OpenCL::clqueue.finish();

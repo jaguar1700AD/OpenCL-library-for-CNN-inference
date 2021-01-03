@@ -51,7 +51,7 @@ kernel void tensor_conv(global float *image, global float* filters, global float
     out[filtId*or*oc + rId*oc + cId] = sum;
  }
 
- kernel void tensor_conv_optim(global float *image, int depth_per_iter, global float* filters, local float* image_local, local float* filter_local, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int oz, int strider, int stridec)
+ kernel void tensor_conv_optim1(global float *image, int depth_per_iter, global float* filters, local float* image_local, local float* filter_local, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int oz, int strider, int stridec)
 {
     // Assume -> strider <= kr, stridec <= kc
     // Consecutive filter and image positions processed by a single work group
@@ -115,6 +115,101 @@ kernel void tensor_conv(global float *image, global float* filters, global float
         const int copySize = filtlim / numThreads + 1;
         const int beg = (localrId * numColThreads + localcId) * copySize;
         for(int id = beg; id < min(beg + copySize, filtlim); id++)
+        {
+            filter_local[id] = filters[filtId * iz * kr * kc + iz_beg * kr * kc + id];
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        if (rId < or && cId < oc)
+        {
+            float sum = 0;
+            for (int z = 0; z < iz_len; z++)
+            {
+                for (int r = 0; r < kr; r++)
+                {
+                    for (int c = 0; c < kc; c++)
+                    {
+                        const int r_image = r + strider * localrId;
+                        const int c_image = c + stridec * localcId;
+                        sum += image_local[z*rlim*clim + r_image * clim + c_image] * filter_local[z*kr*kc + r * kc + c];
+                    }
+                }
+            }
+            if (iz_beg == 0) out[filtId*or*oc + rId*oc + cId] = sum;
+            else out[filtId*or*oc + rId*oc + cId] += sum;
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+
+    if (rId < or && cId < oc) out[filtId*or*oc + rId*oc + cId] += bias[filtId];
+
+ }
+
+  kernel void tensor_conv_optim2(global float *image, int depth_per_iter, global float* filters, local float* image_local, local float* filter_local, global float* bias, global float* out, int ir, int ic, int iz, int kr, int kc, int or, int oc, int oz, int strider, int stridec)
+{
+    // Assume -> strider <= kr, stridec <= kc
+    // Consecutive filter and image positions processed by a single work group
+    // Coalesced memory access
+
+    // kr, kc -> Num of rows and columns in the kernel
+    // ir, ic -> Num of rows and columns in the image
+    // iz -> Num of planes in the image = Num of planes in the kernel
+    // or, oc -> Num of rows and columns in the output
+    // oz -> Number of filters = Depth of output
+
+    const int filtId = get_global_id(0); // filter id 
+    const int rId = get_global_id(1); // row id
+    const int cId = get_global_id(2); // column id
+    // get_local_id(0) = 1
+    const int localrId = get_local_id(1);
+    const int localcId = get_local_id(2);
+    const int numRowThreads = get_local_size(1); // Num consecutive filters for a work group in row dirn
+    const int numColThreads = get_local_size(2); // Num consecutive filters for a work group in col dirn
+    const int workrId = get_group_id(1);
+    const int workcId = get_group_id(2);
+
+    for(int iz_beg = 0; iz_beg < iz; iz_beg += depth_per_iter)
+    {
+        int iz_end = min(iz_beg + depth_per_iter, iz);
+        int iz_len = iz_end - iz_beg;
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        // Image data and filter data for neighbouring positions is stored in local memory
+
+        // Copy image to local memory
+
+        const int r_image_beg = workrId * numRowThreads * strider;
+        const int c_image_beg = workcId * numColThreads * stridec;
+        const int rlim = kr + strider * (numRowThreads - 1);
+        const int clim = kc + stridec * (numColThreads - 1);
+        const int rbeg = localrId;
+        const int cbeg = localcId;
+
+        for(int z = 0; z < iz_len; z++)
+        {
+            for(int r = rbeg; r < min(rlim, ir - r_image_beg); r += numRowThreads)
+            {
+                for(int c = cbeg; c < min(clim, ic - c_image_beg); c += numColThreads)
+                {
+                    int r_image = r_image_beg + r;
+                    int c_image = c_image_beg + c;
+                    int z_image = iz_beg + z;
+                    image_local[z*rlim*clim + r * clim + c] = image[z_image*ir*ic + r_image*ic + c_image];
+                }
+            }
+        }
+
+        // Copy filter to local memory
+
+        const int filtlim = iz_len * kr * kc;
+        const int numThreads = numRowThreads * numColThreads;
+        const int beg = localrId * numColThreads + localcId;
+        for(int id = beg; id < filtlim; id += numThreads)
         {
             filter_local[id] = filters[filtId * iz * kr * kc + iz_beg * kr * kc + id];
         }

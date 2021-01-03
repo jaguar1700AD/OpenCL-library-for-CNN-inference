@@ -175,6 +175,8 @@ Tensor::Tensor AlexNet::forward(Tensor::Tensor input)
     input = Tensor::relu(input);
     input = Tensor::maxPool(input, make_pair(3,3), make_pair(2,2));
 
+    //return input;
+
     input.reshape(vector <int> {9216});
     
     input = Tensor::fc(input, weight[0]); 

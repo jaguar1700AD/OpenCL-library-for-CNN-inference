@@ -160,6 +160,7 @@ void check_accuracy()
 	Tensor::Tensor tensor_mean(vector <int> {ID}, "", -1); tensor_mean.setValue(mean); 
 	Tensor::Tensor tensor_std(vector <int> {ID}, "", -1); tensor_std.setValue(std); 
 	
+	int image_upp_bound = 1000;
 	int num_timer = 3;
 	util::Timer timer[num_timer];
 	vector <util::Timer> CNN_timer(27, util::Timer());
@@ -207,7 +208,7 @@ void check_accuracy()
 
 			if (predn == category) correct++;
 			tot_image++;
-			if (tot_image > 1000) break;
+			if (tot_image > image_upp_bound) break;
 
 			cout << "\r" << correct << " / " << tot_image << " ( " << (correct * 100.0 / tot_image) << "% ) " << flush;
 
@@ -220,7 +221,7 @@ void check_accuracy()
 		closedir(sub_dp);
 		category++;
 
-		if (tot_image > 1000) break;
+		if (tot_image > image_upp_bound) break;
 	}
 
 	sub_dirs->clear();
@@ -237,12 +238,13 @@ void check_accuracy()
 		tot_expected_time.recorded_time += timer[i].recorded_time;
 	}
 	tot_expected_time.print("Total expected time");
-	for(int i = 0; i < CNN_timer.size(); i++) 
+	vector <int> relevant_inds = {0, 1, 4, 5, 8, 9, 11, 12, 14, 15};
+	for(int i = 0; i < relevant_inds.size(); i++) 
 	{
-		CNN_timer[i].print(to_string(i));
-		tot_CNN_time.recorded_time += CNN_timer[i].recorded_time;
+		CNN_timer[relevant_inds[i]].print(to_string(relevant_inds[i]));
+		//tot_CNN_time.recorded_time += CNN_timer[i].recorded_time;
 	}
-	tot_CNN_time.print("Total CNN expected time");
+	//tot_CNN_time.print("Total CNN expected time");
 }
 
 int main(void)
