@@ -14,9 +14,11 @@ namespace Tensor
     cl::Kernel maxPoolKernel;
     cl::Kernel avgPoolKernel;
     cl::Kernel matMultKernel;
-    cl::Kernel fcMultKernel;
+    cl::Kernel fcMult1Kernel;
+    cl::Kernel fcMult2Kernel;
     cl::Kernel fcReduceKernel;
     cl::Kernel padKernel;
+    cl::Kernel transposeKernel;
     cl::Kernel begProcessKernel;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -168,9 +170,11 @@ namespace Tensor
         maxPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_maxPool", &err); check_error();
         avgPoolKernel = cl::Kernel(OpenCL::clprogram, "tensor_avgPool", &err); check_error();
         matMultKernel = cl::Kernel(OpenCL::clprogram, "tensor_matMult", &err); check_error();
-        fcMultKernel = cl::Kernel(OpenCL::clprogram, "tensor_fcMult", &err); check_error();
+        fcMult1Kernel = cl::Kernel(OpenCL::clprogram, "tensor_fcMult1", &err); check_error();
+        fcMult2Kernel = cl::Kernel(OpenCL::clprogram, "tensor_fcMult2", &err); check_error();
         fcReduceKernel = cl::Kernel(OpenCL::clprogram, "tensor_fcReduce", &err); check_error();
         padKernel = cl::Kernel(OpenCL::clprogram, "tensor_pad", &err); check_error();
+        transposeKernel = cl::Kernel(OpenCL::clprogram, "tensor_transpose", &err); check_error();
         begProcessKernel = cl::Kernel(OpenCL::clprogram, "tensor_begProcess", &err); check_error();
     }
 
@@ -525,14 +529,6 @@ namespace Tensor
 
     Tensor fc(Tensor& T, Tensor& weight)
     {
-
-        // T.dim.push_back(1);
-        // Tensor result = matMult(weight, T);
-        // T.dim.pop_back();
-        // result.dim.pop_back();
-
-        // return result;
-
         assert(weight.dim.size() == 2);
         int m = weight.dim[0], n = weight.dim[1];
         assert(T.dim.size() == 1);
@@ -548,17 +544,19 @@ namespace Tensor
 
         // global float* weight, global float* act, global float* out, local float* act_local, int m, int n, int p
 
-        fcMultKernel.setArg(0, weight.storageBuffer);
-        fcMultKernel.setArg(1, T.storageBuffer);
-        fcMultKernel.setArg(2, interim.storageBuffer);
-        fcMultKernel.setArg(3, sizeof(float) * p, nullptr);
-        fcMultKernel.setArg(4, m);
-        fcMultKernel.setArg(5, n);
-        fcMultKernel.setArg(6, p);
+        cl::Kernel myKernel = fcMult1Kernel;
+
+        myKernel.setArg(0, weight.storageBuffer);
+        myKernel.setArg(1, T.storageBuffer);
+        myKernel.setArg(2, interim.storageBuffer);
+        myKernel.setArg(3, sizeof(float) * p, nullptr);
+        myKernel.setArg(4, m);
+        myKernel.setArg(5, n);
+        myKernel.setArg(6, p);
 
         cl::NDRange global_dim = cl::NDRange(numRowThreads, numColThreads);
         cl::NDRange local_dim = cl::NDRange(localRow, 1);
-        err = (OpenCL::clqueue).enqueueNDRangeKernel(fcMultKernel, cl::NullRange, global_dim, local_dim);
+        err = (OpenCL::clqueue).enqueueNDRangeKernel(myKernel, cl::NullRange, global_dim, local_dim);
         check_error();
 
         // global float* input, global float* output, int ir, int ic

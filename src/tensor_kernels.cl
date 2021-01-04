@@ -359,9 +359,11 @@ kernel void tensor_fcMult1(global float* weight, global float* act, global float
     }
 }
 
-kernel void tensor_fcMult(global float* weight, global float* act, global float* out, local float* act_local, int m, int n, int p)
+kernel void tensor_fcMult2(global float* weight, global float* act, global float* out, local float* act_local, int m, int n, int p)
 {
-    // weight -> m X n matrix
+    // Only difference from first version is that weight tensor is assumed to be in column major format
+
+    // weight -> m X n matrix (Assumed to be stored in column major format) 
     // act -> n X 1 matrix
     // So weight X act gives m X 1 matrix
     // out is m X p matrix (Stored in row major order with values to be added placed along a column)
@@ -391,8 +393,7 @@ kernel void tensor_fcMult(global float* weight, global float* act, global float*
         float sum = 0;
         for(int i = 0; i < numComp; i++)
         {
-            int j = (i + localId) % numComp; // Use j instead of i to avoid bank conflicts
-            sum += weight[rowId * n + colOffset + j] * act_local[j];
+            sum += weight[(colOffset + i)*m + rowId] * act_local[i];
         }
 
         out[colId * m + rowId] = sum;
@@ -434,6 +435,15 @@ kernel void tensor_pad(global float* image, global float* out, int ir, int ic, i
     }
 
     out[zId * or * oc + rId * oc + cId] = value;
+}
+
+kernel void tensor_transpose(global float* image, global float* out, int m, int n)
+{
+    // image -> m X n
+    // out -> n X m
+
+    int i = get_global_id(0), j = get_global_id(1);
+    out[j * m + i] = image[i * n + j];
 }
 
 kernel void tensor_begProcess(global uchar* image, global float* out, int ir, int ic, int iz, int or, int oc, global float* mean, global float* std)

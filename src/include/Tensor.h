@@ -25,9 +25,11 @@ namespace Tensor
     extern cl::Kernel maxPoolKernel;
     extern cl::Kernel avgPoolKernel;
     extern cl::Kernel matMultKernel;
-    extern cl::Kernel fcMultKernel;
+    extern cl::Kernel fcMult1Kernel;
+    extern cl::Kernel fcMult2Kernel;
     extern cl::Kernel fcReduceKernel;
     extern cl::Kernel padKernel;
+    extern cl::Kernel transposeKernel;
     extern cl::Kernel begProcessKernel;
 
     extern cl_int err;
