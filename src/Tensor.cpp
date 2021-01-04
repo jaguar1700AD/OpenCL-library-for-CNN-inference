@@ -538,8 +538,8 @@ namespace Tensor
         assert(T.dim.size() == 1);
         assert(T.dim[0] == n);
 
-        int localRow = 256;
-        int p = 32; // Each thread computes dot product of p values
+        int localRow = 32;
+        int p = 64; // Each thread computes dot product of p values
         int numColThreads = ceil((float) n / p);
         int numRowThreads = ceil((float) m / localRow) * localRow;
 

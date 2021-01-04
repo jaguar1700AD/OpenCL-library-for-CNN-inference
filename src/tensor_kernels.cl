@@ -319,7 +319,7 @@ kernel void tensor_matMult(global float* image, global float* weights, global fl
     out[rid * n + cid] = sum;
 }
 
-kernel void tensor_fcMult(global float* weight, global float* act, global float* out, local float* act_local, int m, int n, int p)
+kernel void tensor_fcMult1(global float* weight, global float* act, global float* out, local float* act_local, int m, int n, int p)
 {
     // weight -> m X n matrix
     // act -> n X 1 matrix
@@ -348,7 +348,47 @@ kernel void tensor_fcMult(global float* weight, global float* act, global float*
 
     if (rowId < m)
     {
-        int sum = 0;
+        float sum = 0;
+        for(int i = 0; i < numComp; i++)
+        {
+            int j = (i + localId) % numComp; // Use j instead of i to avoid bank conflicts
+            sum += weight[rowId * n + colOffset + j] * act_local[j];
+        }
+
+        out[colId * m + rowId] = sum;
+    }
+}
+
+kernel void tensor_fcMult1(global float* weight, global float* act, global float* out, local float* act_local, int m, int n, int p)
+{
+    // weight -> m X n matrix
+    // act -> n X 1 matrix
+    // So weight X act gives m X 1 matrix
+    // out is m X p matrix (Stored in row major order with values to be added placed along a column)
+
+    int numThreads = get_local_size(0);
+    // get_local_size(1) = 1
+    int colId = get_global_id(1);
+    int rowId = get_global_id(0);
+    int localId = get_local_id(0);
+    // get_local_id(1) = 0
+    int colOffset = colId * p;
+    int numComp = min(p, n - colOffset); // Number of values to compute dot product of
+
+    // Load act for work group into local memory
+
+    for(int i = localId; i < numComp; i += numThreads)
+    {
+        act_local[i] = act[i + colOffset];
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Perform dot product
+
+    if (rowId < m)
+    {
+        float sum = 0;
         for(int i = 0; i < numComp; i++)
         {
             int j = (i + localId) % numComp; // Use j instead of i to avoid bank conflicts
@@ -364,7 +404,7 @@ kernel void tensor_fcReduce(global float* input, global float* output, int ir, i
     // All values along each column are added
     int id = get_global_id(0);
 
-    int sum = 0;
+    float sum = 0;
     for(int r = 0; r < ir; r++)
     {
         sum += input[r * ic + id];
