@@ -185,30 +185,29 @@ kernel void tensor_conv(global float *image, global float* filters, global float
 
         const int r_image_beg = workrId * numRowThreads * strider;
         const int c_image_beg = workcId * numColThreads * stridec;
-        const int rlim = kr + strider * (numRowThreads - 1);
-        const int clim = kc + stridec * (numColThreads - 1);
-        const int rbeg = localrId;
-        const int cbeg = localcId;
+        const int rlim = min(kr + strider * (numRowThreads - 1), ir - r_image_beg);
+        const int clim = min(kc + stridec * (numColThreads - 1), ic - c_image_beg);
+
+        const int imagelim = rlim * clim;
+        int numThreads = numRowThreads * numColThreads;
+        int beg = localrId * numColThreads + localcId;
 
         for(int z = 0; z < iz_len; z++)
         {
-            for(int r = rbeg; r < min(rlim, ir - r_image_beg); r += numRowThreads)
+            for(int id = beg; id < imagelim; id += numThreads)
             {
-                for(int c = cbeg; c < min(clim, ic - c_image_beg); c += numColThreads)
-                {
-                    int r_image = r_image_beg + r;
-                    int c_image = c_image_beg + c;
+                    int r_image = r_image_beg + id / clim;
+                    int c_image = c_image_beg + id % clim;
                     int z_image = iz_beg + z;
-                    image_local[z*rlim*clim + r * clim + c] = image[z_image*ir*ic + r_image*ic + c_image];
-                }
+                    image_local[z*rlim*clim + id] = image[z_image*ir*ic + r_image*ic + c_image];
             }
         }
 
         // Copy filter to local memory
 
         const int filtlim = iz_len * kr * kc;
-        const int numThreads = numRowThreads * numColThreads;
-        const int beg = localrId * numColThreads + localcId;
+        numThreads = numRowThreads * numColThreads;
+        beg = localrId * numColThreads + localcId;
         for(int id = beg; id < filtlim; id += numThreads)
         {
             filter_local[id] = filters[filtId * iz * kr * kc + iz_beg * kr * kc + id];
@@ -318,6 +317,59 @@ kernel void tensor_matMult(global float* image, global float* weights, global fl
     }
 
     out[rid * n + cid] = sum;
+}
+
+kernel void tensor_fcMult(global float* weight, global float* act, global float* out, local float* act_local, int m, int n, int p)
+{
+    // weight -> m X n matrix
+    // act -> n X 1 matrix
+    // So weight X act gives m X 1 matrix
+    // out is m X p matrix (Stored in row major order with values to be added placed along a column)
+
+    int numThreads = get_local_size(0);
+    // get_local_size(1) = 1
+    int colId = get_global_id(1);
+    int rowId = get_global_id(0);
+    int localId = get_local_id(0);
+    // get_local_id(1) = 0
+    int colOffset = colId * p;
+    int numComp = min(p, n - colOffset); // Number of values to compute dot product of
+
+    // Load act for work group into local memory
+
+    for(int i = localId; i < numComp; i += numThreads)
+    {
+        act_local[i] = act[i + colOffset];
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Perform dot product
+
+    if (rowId < m)
+    {
+        int sum = 0;
+        for(int i = 0; i < numComp; i++)
+        {
+            int j = (i + localId) % numComp; // Use j instead of i to avoid bank conflicts
+            sum += weight[rowId * n + colOffset + j] * act_local[j];
+        }
+
+        out[colId * m + rowId] = sum;
+    }
+}
+
+kernel void tensor_fcReduce(global float* input, global float* output, int ir, int ic)
+{
+    // All values along each column are added
+    int id = get_global_id(0);
+
+    int sum = 0;
+    for(int r = 0; r < ir; r++)
+    {
+        sum += input[r * ic + id];
+    }
+    output[id] = sum;
 }
 
 kernel void tensor_pad(global float* image, global float* out, int ir, int ic, int iz, int padr, int padc, float pad_val)

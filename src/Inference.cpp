@@ -162,8 +162,9 @@ void check_accuracy()
 	
 	int image_upp_bound = 1000;
 	int num_timer = 3;
+	int CNN_timer_size = 27;
 	util::Timer timer[num_timer];
-	vector <util::Timer> CNN_timer(27, util::Timer());
+	vector <util::Timer> CNN_timer(CNN_timer_size, util::Timer());
 
 	AlexNet CNN(false);
 	CNN.readData("Alexnet");
@@ -238,7 +239,9 @@ void check_accuracy()
 		tot_expected_time.recorded_time += timer[i].recorded_time;
 	}
 	tot_expected_time.print("Total expected time");
-	vector <int> relevant_inds = {0, 1, 4, 5, 8, 9, 11, 12, 14, 15};
+	//vector <int> relevant_inds = {0, 1, 4, 5, 8, 9, 11, 12, 14, 15};
+	//vector <int> relevant_inds = {19, 20, 22, 23, 25, 26};
+	vector <int> relevant_inds; for (int i = 0; i < CNN_timer_size; i++) relevant_inds.push_back(i);
 	for(int i = 0; i < relevant_inds.size(); i++) 
 	{
 		CNN_timer[relevant_inds[i]].print(to_string(relevant_inds[i]));
