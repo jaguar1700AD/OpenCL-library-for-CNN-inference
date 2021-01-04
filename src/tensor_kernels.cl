@@ -359,7 +359,7 @@ kernel void tensor_fcMult1(global float* weight, global float* act, global float
     }
 }
 
-kernel void tensor_fcMult1(global float* weight, global float* act, global float* out, local float* act_local, int m, int n, int p)
+kernel void tensor_fcMult(global float* weight, global float* act, global float* out, local float* act_local, int m, int n, int p)
 {
     // weight -> m X n matrix
     // act -> n X 1 matrix
