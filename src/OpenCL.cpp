@@ -69,7 +69,7 @@ void OpenCL::initialize_OpenCL() {
 
 	// a context is like a "runtime link" to the device and platform;
 	// i.e. communication is possible
-	OpenCL::clcontext=cl::Context({ default_device });
+	OpenCL::clcontext=cl::Context(default_device);
 
 	// create the program that we want to execute on the device
 	cl::Program::Sources sources;
