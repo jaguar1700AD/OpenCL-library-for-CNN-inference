@@ -18,6 +18,7 @@ void OpenCL::initialize_OpenCL() {
 		std::cout << " No platforms found. Check OpenCL installation!\n";
 		exit(1);
 	}
+
 	cl::Platform default_platform = all_platforms[0];
 	std::cout << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
 
@@ -29,6 +30,7 @@ void OpenCL::initialize_OpenCL() {
 		exit(1);
 	}
 
+	for(int i = 0; i < all_devices.size(); i++) cout << all_devices[i].getInfo<CL_DEVICE_NAME>() << endl;
 	
 	cl::Device default_device = all_devices[0];
 	std::cout << "Using device: " << default_device.getInfo<CL_DEVICE_NAME>() << "\n";
@@ -90,6 +92,50 @@ void OpenCL::initialize_OpenCL() {
 
 }
 
+void OpenCL::gen_m2s_binary()
+{
+
+	std::vector<cl::Platform> all_platforms;
+	cl::Platform::get(&all_platforms);
+
+	cout << "Num Platforms: " << all_platforms.size() << endl;
+
+	cl::Platform default_platform = all_platforms[0];
+	std::cout << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
+
+	cout << default_platform.getInfo<CL_PLATFORM_EXTENSIONS>() << endl;
+
+	/* create context */
+	cl_context_properties cprops[5] = 
+	{
+		CL_CONTEXT_PLATFORM,
+		(cl_context_properties) (default_platform) (),
+		CL_CONTEXT_OFFLINE_DEVICES_AMD,
+		(cl_context_properties) 1,
+		(cl_context_properties) 0
+	};
+	//cl_int err;
+
+
+	cl::Context myContext(CL_DEVICE_TYPE_ALL, cprops, NULL, NULL, &Tensor::err); Tensor::check_error(); 
+	// vector <cl::Device> devices = myContext.getInfo<CL_CONTEXT_DEVICES>();
+
+	// cout << devices.size() << endl;
+	// for(int i = 0; i < devices.size(); i++)
+	// {
+	// 	cout << devices[i].getInfo<CL_DEVICE_NAME>() << endl;
+	// }
+
+	// cl_context context = clCreateContextFromType(cprops, CL_DEVICE_TYPE_ALL, NULL, NULL, &Tensor::err); Tensor::check_error();
+	// get number of devices
+	// cl_int n_all_devices;
+	// err = clGetContextInfo(context, CL_CONTEXT_NUM_DEVICES, sizeof(n_all_devices), &n_all_devices, NULL);
+	// // get all device IDs
+	// cl_device_id* all_devices = (cl_device_id*) malloc(sizeof(cl_device_id)*n_all_devices);
+	// err = clGetContextInfo(context, CL_CONTEXT_DEVICES, sizeof(cl_device_id)*n_all_devices, all_devices, NULL);
+
+	
+}
 
 
 

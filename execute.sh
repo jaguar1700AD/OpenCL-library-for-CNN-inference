@@ -1,3 +1,3 @@
 tput reset
 make
-./EXE
+LD_LIBRARY_PATH=/opt/rocm/opencl/lib ./EXE

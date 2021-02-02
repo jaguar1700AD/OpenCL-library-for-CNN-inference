@@ -152,9 +152,6 @@ vector <char*>* sorted_dir_entries(char* path)
 
 void check_accuracy()
 {
-	OpenCL::initialize_OpenCL();
-	Tensor::init();
-
 	vector <float> mean = {0.485, 0.456, 0.406};
 	vector <float> std = {0.229, 0.224, 0.225};
 	Tensor::Tensor tensor_mean(vector <int> {ID}, "", -1); tensor_mean.setValue(mean); 
@@ -252,7 +249,12 @@ void check_accuracy()
 
 int main(void)
 {
+	OpenCL::initialize_OpenCL();
+	Tensor::init();
 	check_accuracy();
+
+	// OpenCL::gen_m2s_binary();
+
     return 0;
 }
 

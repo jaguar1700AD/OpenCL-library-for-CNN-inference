@@ -6,7 +6,7 @@
                 "${default}",
                 "/usr/local/include",
                 "/usr/include",
-                "/usr/include/opencv4"
+                "/opt/rocm/opencl/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

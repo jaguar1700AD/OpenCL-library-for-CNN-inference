@@ -4,8 +4,8 @@
 
 # Compiler settings - Can be customized.
 CC = g++
-CXXFLAGS = -std=c++11 -I /usr/include/opencv4 -g
-LDFLAGS = -lOpenCL 
+CXXFLAGS = -std=c++11 -I /opt/rocm/opencl/include -g
+LDFLAGS = -lOpenCL -L /opt/rocm/opencl/lib
 
 # Makefile settings - Can be customized.
 APPNAME = EXE

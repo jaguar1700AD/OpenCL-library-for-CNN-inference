@@ -10,6 +10,8 @@ public:
 	static cl::Context clcontext;
 
 	static void initialize_OpenCL();
+
+	static void gen_m2s_binary();
 };
 
 
